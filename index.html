@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据开发工具包</title>
+<link rel="icon" href="app.ico" sizes="any">
+<link rel="shortcut icon" href="app.ico">
+<style>
+  :root {
+    --bg:#eef1f5; --panel:#ffffff; --border:#e2e6ec; --border-soft:#edf0f4;
+    --text:#1c2530; --muted:#7b8494; --faint:#a5adba;
+    --accent:#3d6fe0; --accent-hover:#2f5bc5; --accent-soft:#e8effc;
+    --soft:#f6f8fa; --hover:#f1f4f8;
+    --kw:#8e44c9; --fn:#2563c9; --str:#1e9e63; --num:#b06d0a; --com:#9aa3b0;
+    --op:#343e4c; --qid:#ad6c00; --var:#c2377a; --ln:#b8c0cc;
+    --danger:#dc4a4a; --warn:#c07d1a; --ok:#12996f; --info:#378add;
+    --danger-bg:#fdf1f1; --warn-bg:#fdf7ec; --ok-bg:#edf9f3; --info-bg:#edf4fc;
+    --shadow-sm:0 1px 2px rgba(16,24,40,.05);
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 3px 10px rgba(16,24,40,.05);
+    --radius:10px; --radius-lg:12px;
+  }
+  [data-theme="dark"] {
+    --bg:#14161b; --panel:#1e2127; --border:#333842; --border-soft:#2a2f37;
+    --text:#e4e7ec; --muted:#8b93a1; --faint:#5f6773;
+    --accent:#6b96ff; --accent-hover:#5583f5; --accent-soft:#232c42;
+    --soft:#23262d; --hover:#262a32;
+    --kw:#c586e6; --fn:#7aa2f7; --str:#7ec97e; --num:#e0af68; --com:#646c78;
+    --op:#c8ccd4; --qid:#e0af68; --var:#ff7ab2; --ln:#434a56;
+    --danger:#f0736f; --warn:#e0a548; --ok:#5dd0a5; --info:#6aa9ef;
+    --danger-bg:#2c1f21; --warn-bg:#2a251a; --ok-bg:#1c2a24; --info-bg:#1c2531;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.25);
+    --shadow:0 1px 3px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);overflow:hidden;font-size:13px}
+
+  /* ---------- app shell / sidebar ---------- */
+  .app-shell{display:flex;height:100vh;width:100vw}
+  .sidebar{width:212px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+  .side-brand{display:flex;align-items:center;gap:10px;padding:14px 14px 13px;border-bottom:1px solid var(--border-soft)}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3d6fe0,#7ba4f3);color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;letter-spacing:-.4px;box-shadow:0 2px 7px rgba(61,111,224,.35);flex-shrink:0}
+  .side-title{font-size:13px;font-weight:650;white-space:nowrap}
+  .side-sub{font-size:9px;color:var(--faint);letter-spacing:1.4px;margin-top:2px}
+  .side-nav{flex:1;overflow:auto;padding:10px 9px;display:flex;flex-direction:column;gap:3px;scrollbar-width:thin}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:12.5px;user-select:none;transition:all .16s;border:1px solid transparent}
+  .nav-item:hover{background:var(--hover);color:var(--text)}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:600;border-color:transparent}
+  .nav-item .ni{width:27px;height:25px;border-radius:6px;background:var(--soft);border:1px solid var(--border-soft);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;letter-spacing:-.2px;color:var(--muted);flex-shrink:0;transition:all .16s}
+  .nav-item.active .ni{background:var(--accent);border-color:var(--accent);color:#fff}
+  .side-foot{padding:11px 14px;border-top:1px solid var(--border-soft);font-size:10px;color:var(--faint);line-height:1.7}
+  .workspace{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;gap:9px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+  .title{font-size:14.5px;font-weight:600;margin-right:6px;white-space:nowrap;letter-spacing:.1px}
+  button{font-family:inherit;font-size:12px;border:1px solid var(--border);background:var(--panel);color:var(--text);padding:6px 12px;border-radius:7px;cursor:pointer;transition:all .16s ease;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+  button:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  button:active{transform:scale(.97)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500;box-shadow:0 2px 6px rgba(61,111,224,.3)}
+  button.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:#fff}
+  button.mini{font-size:11px;padding:4px 9px;border-radius:6px}
+  select,input[type=text],input[type=number],input[type=date]{font-family:inherit;font-size:12px;padding:5px 8px;border:1px solid var(--border);border-radius:7px;background:var(--panel);color:var(--text);cursor:pointer;transition:border-color .16s}
+  select:hover{border-color:var(--accent)}
+  select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .spacer{flex:1}
+  kbd{font-family:inherit;font-size:10px;background:var(--soft);border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 5px;color:var(--muted)}
+  button.primary kbd{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.28);color:#fff}
+
+  /* ---------- tool views ---------- */
+  .tool-view{display:none;flex:1;min-height:0;flex-direction:column}
+  .tool-view.active{display:flex}
+  .wb-toolbar{display:flex;align-items:center;gap:8px;padding:9px 16px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+  .tool-head{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+  .tool-head h2{font-size:14px;font-weight:650;white-space:nowrap}
+  .tool-head .desc{font-size:11px;color:var(--muted)}
+  .tool-body{flex:1;min-height:0;overflow:auto;padding:14px;scrollbar-width:thin}
+  .tool-body.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;overflow:hidden}
+  .tool-body.stack{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+  .tool-body.stack .grow{flex:1;min-height:0}
+
+  /* ---------- options bar ---------- */
+  .options{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:7px 16px;background:var(--panel);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted);flex-shrink:0}
+  .options label{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:4px 9px;border-radius:6px;transition:background .16s}
+  .options label:hover{background:var(--hover)}
+  .options input[type=checkbox]{accent-color:var(--accent);cursor:pointer;width:14px;height:14px}
+  .options select{font-size:11.5px;padding:3px 6px}
+  .options .opt-group{display:flex;align-items:center;gap:4px;padding:4px 9px;border-radius:6px}
+  .options .opt-group:hover{background:var(--hover)}
+  .options .sep{width:1px;height:18px;background:var(--border);margin:0 6px}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:4px;padding:8px 16px 0;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+  .tab{padding:8px 16px;font-size:13px;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0;user-select:none;white-space:nowrap;transition:all .16s;display:flex;align-items:center;gap:7px}
+  .tab:hover{color:var(--text);background:var(--hover)}
+  .tab.active{color:var(--accent);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent)}
+  .tab .tab-dot{width:5px;height:5px;border-radius:50%;background:var(--faint);transition:background .16s}
+  .tab.active .tab-dot{background:var(--accent)}
+
+  /* ---------- layout ---------- */
+  main{flex:1;min-height:0;overflow:hidden}
+  .view{display:none;height:100%;padding:14px;min-height:0}
+  .view.active{display:flex;flex-direction:column;gap:12px;height:100%}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0}
+  .pane{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;min-width:0;min-height:0}
+  .pane-head{display:flex;align-items:center;gap:7px;padding:9px 13px;border-bottom:1px solid var(--border-soft);font-size:12px;font-weight:600;color:var(--text);flex-shrink:0;background:linear-gradient(to bottom, var(--panel), var(--soft))}
+  .pane-head .ph-icon{width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.75}
+  .pane-body{flex:1;min-height:0;display:flex;overflow:hidden}
+  textarea{flex:1;width:100%;height:100%;border:0;outline:0;resize:none;padding:13px 15px;font-family:"Cascadia Code","JetBrains Mono",Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.7;tab-size:2;background:transparent;color:var(--text)}
+  textarea::placeholder{color:var(--faint)}
+  textarea[readonly]{background:transparent}
+  .codewrap{flex:1;min-width:0;overflow:auto;position:relative;scrollbar-width:thin}
+  .codelines{font-family:"Cascadia Code","JetBrains Mono",Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.7;white-space:pre;min-width:max-content;padding:12px 0}
+  .cl{display:flex;min-height:21.3px}
+  .cl:hover{background:var(--hover)}
+  .cl .ln{width:46px;flex-shrink:0;text-align:right;padding-right:13px;color:var(--ln);user-select:none;border-right:1px solid var(--border-soft);margin-right:13px;font-size:11.5px}
+  .cl .code{padding-right:24px}
+  .cl.collapsed{display:none}
+  .cl.cte-head .code{background:var(--accent-soft);border-radius:4px}
+  .minimap{width:58px;flex-shrink:0;border-left:1px solid var(--border-soft);background:var(--soft);overflow:hidden;padding:8px 0;display:flex;flex-direction:column;align-items:flex-start}
+  .mini-row{height:3px;margin:1px 5px;border-radius:2px;cursor:pointer;min-width:5px;opacity:.45;transition:all .14s}
+  .mini-row:hover{height:5px;opacity:1}
+  .outline{width:190px;flex-shrink:0;border-right:1px solid var(--border-soft);background:var(--soft);overflow:auto;padding:10px 0;scrollbar-width:thin}
+  .outline-title{font-size:10.5px;color:var(--faint);padding:2px 14px 8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .outline-item{padding:6px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text);transition:background .14s;border-left:2px solid transparent}
+  .outline-item:hover{background:var(--hover);border-left-color:var(--accent)}
+  .outline-item .dot{width:7px;height:7px;border-radius:2px;background:var(--accent);flex-shrink:0;opacity:.8}
+  .outline-empty{font-size:11px;color:var(--faint);padding:10px 14px;line-height:1.7}
+
+  /* ---------- code colors ---------- */
+  .t-kw{color:var(--kw);font-weight:600}.t-fn{color:var(--fn)}.t-str{color:var(--str)}.t-num{color:var(--num)}.t-com{color:var(--com);font-style:italic}.t-op{color:var(--op)}.t-qid{color:var(--qid)}.t-var{color:var(--var);font-weight:600}.t-id,.t-plain{color:var(--text)}
+
+  /* ---------- cards ---------- */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .card-head{padding:10px 14px;border-bottom:1px solid var(--border-soft);font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;flex-shrink:0;background:linear-gradient(to bottom, var(--panel), var(--soft))}
+  .card-head .ch-icon{width:7px;height:7px;border-radius:2px;background:var(--accent);opacity:.75;flex-shrink:0}
+  .card-head .badge{font-size:10px;font-weight:500;color:var(--muted);background:var(--soft);border:1px solid var(--border-soft);border-radius:9px;padding:1.5px 8px}
+  .card-body{padding:13px;overflow:auto;min-height:0;scrollbar-width:thin}
+  .io-pane{display:flex;flex-direction:column;min-height:0}
+  .io-pane .card-body{padding:0;flex:1;min-height:0;display:flex}
+  .io-pane .card-body>textarea{flex:1;height:auto}
+  .io-tools{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:9px 12px;border-top:1px solid var(--border-soft);flex-shrink:0;background:var(--soft)}
+  .io-tools input[type=text],.io-tools input[type=number]{padding:4px 8px;font-size:11.5px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted)}
+  .field input,.field select,.field textarea{font-family:inherit;font-size:12px;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text);transition:all .16s}
+  .field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .list-item{padding:7px 10px;border-radius:7px;font-size:12px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:2px;transition:background .14s}
+  .list-item:hover{background:var(--hover)}
+  .tag{font-size:10.5px;padding:2px 9px;border-radius:9px;background:var(--soft);color:var(--muted);border:1px solid var(--border-soft)}
+  .tag.from,.tag.join{color:var(--info);background:var(--info-bg)}
+  .tag.target{color:var(--ok);background:var(--ok-bg)}
+  .risk{padding:10px 12px;border-radius:8px;margin-bottom:8px;font-size:12px;border-left:3px solid}
+  .risk:last-child{margin-bottom:0}
+  .risk.danger{border-left-color:var(--danger);background:var(--danger-bg)}
+  .risk.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+  .risk.info{border-left-color:var(--info);background:var(--info-bg)}
+  .risk .rt{font-weight:600;margin-bottom:3px;display:flex;gap:8px;align-items:center}
+  .risk .rd{color:var(--muted);line-height:1.6;font-size:11.5px}
+  .risk .lv{font-size:10px;padding:1px 7px;border-radius:8px;color:#fff;font-weight:500;flex-shrink:0}
+  .lv.danger{background:var(--danger)}.lv.warn{background:var(--warn)}.lv.info{background:var(--info)}
+  .var-row{display:flex;gap:10px;align-items:center;padding:7px 2px;border-bottom:1px solid var(--border-soft);font-size:12px}
+  .var-row:last-child{border-bottom:0}
+  .var-row .vn{width:160px;font-family:Consolas,monospace;color:var(--var);font-weight:600}
+  .var-row input{flex:1;font-family:inherit;font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text);transition:all .16s}
+  .var-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .empty{color:var(--faint);font-size:12px;padding:22px;text-align:center;line-height:1.8}
+  .diff-row{display:flex;font-family:"Cascadia Code",Consolas,monospace;font-size:12px;line-height:1.6;white-space:pre-wrap}
+  .diff-row .dn{width:40px;flex-shrink:0;text-align:right;padding-right:9px;color:var(--ln);user-select:none}
+  .diff-row .sign{width:20px;flex-shrink:0;text-align:center;font-weight:600}
+  .diff-row.same{color:var(--muted)}
+  .diff-row.add{background:var(--ok-bg)}.diff-row.add .sign{color:var(--ok)}
+  .diff-row.del{background:var(--danger-bg)}.diff-row.del .sign{color:var(--danger)}
+  .snip{padding:10px 13px;border:1px solid var(--border);border-radius:9px;cursor:pointer;font-size:12px;margin-bottom:8px;background:var(--panel);transition:all .16s;position:relative}
+  .snip:hover{border-color:var(--accent);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+  .snip .sn-t{font-weight:600;margin-bottom:3px;padding-right:16px}
+  .snip .sn-d{color:var(--muted);font-size:11px}
+  .snip .sn-ico{position:absolute;right:12px;top:11px;font-size:10px;color:var(--faint)}
+
+  /* ---------- extra tool styles ---------- */
+  .rx-match{padding:8px 10px;border:1px solid var(--border);border-radius:7px;margin-bottom:6px;font-family:Consolas,monospace;font-size:11.5px;background:var(--panel)}
+  .rx-match .m-line{font-size:10px;color:var(--faint);margin-bottom:3px}
+  .rx-match .m-val{color:var(--accent);font-weight:600;word-break:break-all}
+  .rx-match .m-grp{color:var(--muted);margin-top:3px;word-break:break-all}
+  .time-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .time-card{padding:14px}
+  .kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px dashed var(--border-soft);font-size:12px}
+  .kv:last-child{border-bottom:0}
+  .kv .k{color:var(--muted)}
+  .kv .v{font-family:Consolas,monospace;color:var(--text);word-break:break-all;text-align:right}
+  .fmt-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border-soft)}
+  .fmt-row:last-child{border-bottom:0}
+  .fmt-row .l{width:150px;flex-shrink:0;color:var(--muted);font-size:11.5px}
+  .fmt-row .v{font-family:Consolas,monospace;font-size:12px;color:var(--accent);word-break:break-all}
+  .big-time{font-size:19px;font-weight:650;letter-spacing:.5px;margin-bottom:5px}
+  .tool-note{font-size:11px;color:var(--muted);line-height:1.7}
+  .stat-line{font-size:11px;color:var(--muted);padding:6px 12px;border-top:1px solid var(--border-soft);flex-shrink:0}
+  .sub-label{font-size:10.5px;font-weight:600;color:var(--faint);letter-spacing:.4px;text-transform:uppercase;padding:0 0 4px}
+  .lint-tbl{margin-bottom:12px;border:1px solid var(--border-soft);border-radius:10px;overflow:hidden}
+  .lint-tbl:last-child{margin-bottom:0}
+  .lint-hd{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--soft);font-size:12px;font-weight:600;flex-wrap:wrap}
+  .lint-hd .lint-score{margin-left:auto;font-family:Consolas,monospace;font-size:12px}
+  .lint-bd{padding:9px 10px 9px}
+  .score-a{color:var(--ok)}.score-b{color:var(--warn)}.score-c{color:var(--danger)}
+  .lint-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .lint-chip{flex:1;min-width:92px;background:var(--soft);border:1px solid var(--border-soft);border-radius:9px;padding:9px 11px}
+  .lint-chip .n{font-size:19px;font-weight:650;font-family:Consolas,monospace;line-height:1.25}
+  .lint-chip .l{font-size:10.5px;color:var(--muted);margin-top:2px}
+
+  footer{display:flex;align-items:center;gap:14px;padding:7px 16px;background:var(--panel);border-top:1px solid var(--border);font-size:11px;color:var(--muted);flex-shrink:0}
+  footer .status-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 4px var(--ok);margin-right:2px;flex-shrink:0}
+  .toast{position:fixed;left:50%;bottom:46px;transform:translateX(-50%) translateY(14px);background:var(--text);color:var(--panel);padding:9px 18px;border-radius:9px;font-size:12px;opacity:0;transition:all .25s cubic-bezier(.2,.9,.3,1.2);pointer-events:none;z-index:99;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .drop-hint{position:absolute;inset:0;background:var(--accent-soft);border:2px dashed var(--accent);border-radius:var(--radius);display:none;align-items:center;justify-content:center;font-size:15px;color:var(--accent);font-weight:600;pointer-events:none;z-index:5}
+  .drop-hint.show{display:flex}
+  .hint{font-size:11px;color:var(--muted);line-height:1.65}
+
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px;border:2px solid var(--panel)}
+  ::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="side-brand">
+      <div class="logo">DB</div>
+      <div><div class="side-title">数据开发工具包</div><div class="side-sub">DATA DEV KIT</div></div>
+    </div>
+    <nav class="side-nav">
+      <div class="nav-item active" data-tool="sql"><span class="ni">SQL</span><span>SQL 工作台</span></div>
+      <div class="nav-item" data-tool="json"><span class="ni">JSON</span><span>JSON 工具</span></div>
+      <div class="nav-item" data-tool="text"><span class="ni">TXT</span><span>文本批处理</span></div>
+      <div class="nav-item" data-tool="regex"><span class="ni">REG</span><span>正则测试</span></div>
+      <div class="nav-item" data-tool="time"><span class="ni">DATE</span><span>时间 / 分区</span></div>
+      <div class="nav-item" data-tool="encode"><span class="ni">HASH</span><span>编码 / 哈希</span></div>
+      <div class="nav-item" data-tool="csv"><span class="ni">CSV</span><span>CSV / TSV 转 SQL</span></div>
+      <div class="nav-item" data-tool="model"><span class="ni">DOC</span><span>模型文档</span></div>
+      <div class="nav-item" data-tool="ins"><span class="ni">INS</span><span>INSERT 造数</span></div>
+      <div class="nav-item" data-tool="sync"><span class="ni">SYNC</span><span>同步 SQL</span></div>
+      <div class="nav-item" data-tool="chg"><span class="ni">ALTER</span><span>表结构变更</span></div>
+      <div class="nav-item" data-tool="lint"><span class="ni">LINT</span><span>建模规范体检</span></div>
+      <div class="nav-item" data-tool="prof"><span class="ni">PROF</span><span>数据探查</span></div>
+    </nav>
+    <div class="side-foot">纯本地运行 · 数据不上传<br>13 个工具 · 离线可用</div>
+  </aside>
+
+  <div class="workspace">
+    <header>
+      <div class="title" id="headTitle">SQL 工作台</div>
+      <div class="hint" id="headDesc">格式化 · 分析 · 对比 · 工具</div>
+      <div class="spacer"></div>
+      <button id="btnTheme" title="切换深浅主题">深色</button>
+      <button id="btnImport" title="导入配置">导入</button>
+      <button id="btnExport" title="导出配置">导出</button>
+    </header>
+
+    <!-- ============ SQL 工作台 ============ -->
+    <section class="tool-view active" id="tool-sql">
+      <div class="wb-toolbar">
+        <select id="dialect" title="SQL 方言"></select>
+        <button class="primary" id="btnFormat">格式化 <kbd>Ctrl+Enter</kbd></button>
+        <button id="btnSample">示例</button>
+        <button id="btnClear">清空</button>
+        <button id="btnCopy">复制结果</button>
+      </div>
+      <div class="options" id="optBar">
+        <label><input type="checkbox" id="optUpper" checked> 关键字大写</label>
+        <div class="sep"></div>
+        <label><input type="checkbox" id="optClause" checked> 子句换行</label>
+        <label><input type="checkbox" id="optLogic" checked> AND/OR 换行</label>
+        <label><input type="checkbox" id="optFieldLine" checked> 字段一行</label>
+        <label><input type="checkbox" id="optCaseLine" checked> CASE 分行</label>
+        <div class="sep"></div>
+        <label class="opt-group">缩进 <select id="optIndent"><option value="2">2</option><option value="4">4</option><option value="0">0</option></select></label>
+        <label class="opt-group">折行 <select id="optWidth"><option value="80">80</option><option value="100" selected>100</option><option value="120">120</option><option value="0">不限</option></select></label>
+        <div class="spacer"></div>
+        <span class="hint">拖入 .sql 文件打开 · Ctrl+S 保存结果</span>
+      </div>
+      <div class="tabs" id="wbTabs">
+        <div class="tab active" data-view="fmt"><span class="tab-dot"></span>格式化</div>
+        <div class="tab" data-view="ana"><span class="tab-dot"></span>分析</div>
+        <div class="tab" data-view="diff"><span class="tab-dot"></span>对比</div>
+        <div class="tab" data-view="tools"><span class="tab-dot"></span>工具</div>
+      </div>
+      <main id="sqlMain">
+        <section class="view active" id="view-fmt">
+          <div class="grid2">
+            <div class="pane">
+              <div class="pane-head"><span class="ph-icon"></span>输入 SQL <div class="spacer"></div><button class="mini" id="btnPaste">粘贴</button><button class="mini" id="btnOpen">打开文件</button></div>
+              <div class="pane-body"><textarea id="input" spellcheck="false" placeholder="在这里粘贴或输入 SQL，支持拖入 .sql 文件…"></textarea></div>
+            </div>
+            <div class="pane">
+              <div class="pane-head"><span class="ph-icon"></span>格式化结果 <div class="spacer"></div><span id="cteCount" class="badge"></span><button class="mini" id="btnCopy2">复制</button></div>
+              <div class="pane-body">
+                <div class="outline" id="outline"><div class="outline-title">CTE 大纲</div><div class="outline-empty">点击 CTE 可折叠/展开·定位</div></div>
+                <div class="codewrap" id="codewrap"><div class="codelines" id="output"></div></div>
+                <div class="minimap" id="minimap"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="view" id="view-ana">
+          <div class="card" style="flex:0 0 auto">
+            <div class="card-head"><span class="ch-icon"></span>变量面板 <span class="badge">调度参数一键替换</span><div class="spacer"></div><button class="mini" id="btnApplyVars">应用到输入 SQL</button></div>
+            <div class="card-body" id="varPanel" style="max-height:150px"><div class="empty">在输入框中写入 ${bizdate}、${hivevar:x}、:name 等变量后自动识别</div></div>
+          </div>
+          <div class="grid2" style="flex:1">
+            <div class="card">
+              <div class="card-head"><span class="ch-icon"></span>读取 / 写入对象 <span class="badge" id="tableCount"></span></div>
+              <div class="card-body" id="tableList"><div class="empty">格式化后自动提取 FROM / JOIN / INSERT 目标表</div></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><span class="ch-icon"></span>风险扫描 <span class="badge" id="riskCount"></span></div>
+              <div class="card-body" id="riskList"><div class="empty">自动检测全表扫描、笛卡尔积、分区失效等隐患</div></div>
+            </div>
+          </div>
+          <div class="card" style="flex:0 0 200px">
+            <div class="card-head"><span class="ch-icon"></span>输出字段清单 <span class="badge" id="colCount"></span></div>
+            <div class="card-body" id="colList"><div class="empty">提取 SELECT 输出字段与别名</div></div>
+          </div>
+        </section>
+        <section class="view" id="view-diff">
+          <div class="card" style="flex:0 0 auto">
+            <div class="card-head"><span class="ch-icon"></span>SQL 差异对比 <div class="spacer"></div>
+              <label style="font-size:11px;display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="diffIgnoreCase" checked> 忽略大小写</label>
+              <label style="font-size:11px;display:flex;gap:5px;align-items:center;cursor:pointer"><input type="checkbox" id="diffIgnoreSpace" checked> 忽略空白</label>
+              <button class="mini" id="btnDiffSwap">交换</button>
+              <button class="mini primary" id="btnDiff">对比</button>
+            </div>
+          </div>
+          <div class="grid2" style="flex:1">
+            <div class="pane"><div class="pane-head"><span class="ph-icon"></span>原始 SQL</div><div class="pane-body"><textarea id="diffA" spellcheck="false" placeholder="粘贴旧版本 SQL…"></textarea></div></div>
+            <div class="pane"><div class="pane-head"><span class="ph-icon"></span>新 SQL</div><div class="pane-body"><textarea id="diffB" spellcheck="false" placeholder="粘贴新版本 SQL…"></textarea></div></div>
+          </div>
+          <div class="card" style="flex:0 0 230px">
+            <div class="card-head"><span class="ch-icon"></span>对比结果 <span class="badge" id="diffStat"></span></div>
+            <div class="card-body" id="diffResult"><div class="empty">点击「对比」查看行级差异：<span style="color:var(--ok)">+ 新增</span> · <span style="color:var(--danger)">− 删除</span></div></div>
+          </div>
+        </section>
+        <section class="view" id="view-tools">
+          <div class="grid2" style="flex:0 0 auto;grid-template-columns:1fr 1fr">
+            <div class="card">
+              <div class="card-head"><span class="ch-icon"></span>ID 列 → IN (...) <span class="badge">Excel/日志粘贴</span></div>
+              <div class="card-body">
+                <textarea id="idInput" spellcheck="false" placeholder="每行一个 ID，或逗号、分号分隔…" style="height:88px;border:1px solid var(--border);border-radius:8px;font-family:Consolas,monospace;background:var(--panel);color:var(--text);resize:vertical;padding:10px 12px"></textarea>
+                <div class="row" style="margin:9px 0">
+                  <label class="field">引号<select id="idQuote"><option value="auto">自动</option><option value="single">加单引号</option><option value="none">不加</option></select></label>
+                  <label class="field" style="flex-direction:row;align-items:center"><input type="checkbox" id="idDistinct" checked> 去重</label>
+                  <button class="mini primary" id="btnIds">转换</button>
+                  <button class="mini" id="btnIdsCopy">复制</button>
+                </div>
+                <div id="idOut" class="hint" style="font-family:Consolas,monospace;word-break:break-all;color:var(--text);min-height:28px">结果将显示在这里</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><span class="ch-icon"></span>SELECT → 建表 DDL <span class="badge">按字段生成</span></div>
+              <div class="card-body">
+                <div class="row" style="margin-bottom:9px"><label class="field" style="flex:1">目标表名<input id="ddlName" placeholder="dwd.new_table" value="dwd.new_table"></label><button class="mini primary" id="btnDdl">生成</button><button class="mini" id="btnDdlCopy">复制</button></div>
+                <div id="ddlOut" class="hint" style="font-family:Consolas,monospace;white-space:pre-wrap;color:var(--text);min-height:88px">使用当前输入框中的 SELECT 生成建表语句</div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="flex:1">
+            <div class="card-head"><span class="ch-icon"></span>片段库 <span class="badge">点击插入当前 SQL</span><div class="spacer"></div><button class="mini" id="btnAddSnip">+ 收藏当前 SQL</button></div>
+            <div class="card-body" id="snipList"></div>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    <!-- ============ JSON 工具 ============ -->
+    <section class="tool-view" id="tool-json">
+      <div class="tool-head"><h2>JSON 工具</h2><span class="desc">格式化 / 压缩 / 校验 / 转 SQL INSERT</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>输入 JSON <div class="spacer"></div><button class="mini" id="jsonSample">示例</button><button class="mini" id="jsonClear">清空</button></div>
+          <div class="card-body"><textarea id="jsonInput" spellcheck="false" placeholder="粘贴 JSON 文本…"></textarea></div>
+          <div class="io-tools">
+            <button class="mini primary" id="jsonFmt">格式化</button>
+            <button class="mini" id="jsonMin">压缩</button>
+            <button class="mini" id="jsonCheck">校验</button>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">缩进<select id="jsonIndent"><option value="2" selected>2</option><option value="4">4</option><option value="0">压缩</option></select></label>
+            <div class="spacer"></div><span class="hint" id="jsonStat"></span>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>处理结果 <div class="spacer"></div><button class="mini" id="jsonCopy">复制</button><button class="mini" id="jsonDownload">下载</button></div>
+          <div class="card-body"><textarea id="jsonOutput" readonly spellcheck="false" placeholder="结果将显示在这里…"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">表名<input type="text" id="jsonTable" value="my_table" style="width:120px"></label>
+            <button class="mini primary" id="jsonInsert">转 INSERT</button>
+            <span class="hint">数组按行生成 VALUES</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 文本批处理 ============ -->
+    <section class="tool-view" id="tool-text">
+      <div class="tool-head"><h2>文本批处理</h2><span class="desc">清洗 / 去重 / 排序 / 批量加引号</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>原始文本 <div class="spacer"></div><button class="mini" id="textClear">清空</button></div>
+          <div class="card-body"><textarea id="textInput" spellcheck="false" placeholder="每行一项，或从 Excel 粘贴一列…"></textarea></div>
+          <div class="io-tools">
+            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px"><input type="checkbox" id="textDedup" checked> 去重</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px"><input type="checkbox" id="textIgnoreCase"> 忽略大小写</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px"><input type="checkbox" id="textDropEmpty" checked> 去空行</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px"><input type="checkbox" id="textTrim" checked> 去首尾空格</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px"><input type="checkbox" id="textReverse"> 倒序</label>
+          </div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">排序<select id="textSort"><option value="none">原顺序</option><option value="asc">文本升序</option><option value="desc">文本降序</option><option value="numAsc">数值升序</option><option value="numDesc">数值降序</option><option value="lenAsc">长度升序</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">大小写<select id="textCase"><option value="none">不变</option><option value="upper">大写</option><option value="lower">小写</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">前缀<input type="text" id="textPrefix" style="width:52px" placeholder="如 '"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">后缀<input type="text" id="textSuffix" style="width:52px" placeholder="如 '"></label>
+            <button class="mini primary" id="textRun">处理</button>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>处理结果 <div class="spacer"></div><button class="mini" id="textCopy">复制</button><button class="mini" id="textToInput">作为 SQL 输入</button></div>
+          <div class="card-body"><textarea id="textOutput" readonly spellcheck="false" placeholder="点击左侧「处理」生成结果…"></textarea></div>
+          <div class="stat-line" id="textStat">等待处理</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 正则测试 ============ -->
+    <section class="tool-view" id="tool-regex">
+      <div class="tool-head"><h2>正则测试</h2><span class="desc">实时匹配 · 分组提取 · 批量替换</span></div>
+      <div class="tool-body stack">
+        <div class="card" style="flex:0 0 auto">
+          <div class="card-body" style="padding:11px 13px">
+            <div class="row">
+              <label class="field" style="flex:1;min-width:260px">正则表达式<input type="text" id="rxPattern" placeholder="如 (\d{4})-(\d{2})-(\d{2})" spellcheck="false" style="font-family:Consolas,monospace"></label>
+              <label class="field" style="width:110px">标志位<input type="text" id="rxFlags" value="gm" spellcheck="false" style="font-family:Consolas,monospace"></label>
+              <button class="primary" id="rxRun" style="align-self:flex-end">测试</button>
+              <button id="rxClear" style="align-self:flex-end">清空</button>
+            </div>
+          </div>
+        </div>
+        <div class="grid2 grow">
+          <div class="card io-pane">
+            <div class="card-head"><span class="ch-icon"></span>测试文本</div>
+            <div class="card-body"><textarea id="rxText" spellcheck="false" placeholder="粘贴要测试的文本…"></textarea></div>
+            <div class="io-tools"><span class="hint" id="rxStat">输入正则后点击测试</span></div>
+          </div>
+          <div class="card io-pane">
+            <div class="card-head"><span class="ch-icon"></span>匹配结果 <span class="badge" id="rxCount"></span></div>
+            <div class="card-body" id="rxMatches"><div class="empty">匹配结果将显示在这里</div></div>
+            <div class="io-tools">
+              <label class="field" style="flex-direction:row;align-items:center;gap:5px">替换为<input type="text" id="rxReplace" style="width:130px" placeholder="支持 $1 引用分组"></label>
+              <button class="mini primary" id="rxReplaceBtn">替换</button>
+              <button class="mini" id="rxCopy">复制结果</button>
+            </div>
+            <div class="card-body" style="height:110px;flex:0 0 110px;border-top:1px solid var(--border-soft)"><textarea id="rxOut" readonly spellcheck="false" placeholder="替换结果…"></textarea></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 时间 / 分区 ============ -->
+    <section class="tool-view" id="tool-time">
+      <div class="tool-head"><h2>时间 / 分区</h2><span class="desc">时间戳互转 · 日期加减 · 调度分区格式</span></div>
+      <div class="tool-body">
+        <div class="time-grid">
+          <div class="card time-card">
+            <div class="card-head" style="margin:-14px -14px 12px"><span class="ch-icon"></span>当前时间 <div class="spacer"></div><button class="mini" id="timeRefresh">刷新</button></div>
+            <div class="big-time" id="timeBig">—</div>
+            <div id="timeNowKv"></div>
+          </div>
+          <div class="card time-card">
+            <div class="card-head" style="margin:-14px -14px 12px"><span class="ch-icon"></span>时间戳 → 日期</div>
+            <div class="row" style="margin-bottom:10px">
+              <label class="field" style="flex:1">时间戳<input type="text" id="tsValue" placeholder="1704153600" style="font-family:Consolas,monospace"></label>
+              <label class="field">单位<select id="tsUnit"><option value="s">秒</option><option value="ms">毫秒</option></select></label>
+              <button class="primary" id="tsRun" style="align-self:flex-end">转换</button>
+            </div>
+            <div id="tsResult" class="tool-note">结果将显示在这里</div>
+          </div>
+          <div class="card time-card">
+            <div class="card-head" style="margin:-14px -14px 12px"><span class="ch-icon"></span>日期 → 时间戳 / 日期加减</div>
+            <div class="row" style="margin-bottom:10px">
+              <label class="field">日期<input type="date" id="dateValue"></label>
+              <button class="primary" id="dateToTsBtn">转时间戳</button>
+            </div>
+            <div class="row" style="margin-bottom:10px">
+              <label class="field" style="width:90px">增减<input type="number" id="dateDelta" value="1"></label>
+              <label class="field">单位<select id="dateUnit"><option value="d">天</option><option value="w">周</option><option value="m">月</option></select></label>
+              <button class="primary" id="dateCalcBtn">计算</button>
+            </div>
+            <div id="dateResult" class="tool-note">结果将显示在这里</div>
+          </div>
+          <div class="card time-card">
+            <div class="card-head" style="margin:-14px -14px 12px"><span class="ch-icon"></span>分区格式速查</div>
+            <div class="row" style="margin-bottom:8px">
+              <label class="field" style="flex:1">业务日期<input type="text" id="partDate" placeholder="20240102" style="font-family:Consolas,monospace"></label>
+              <button class="primary" id="partRun">生成</button>
+            </div>
+            <div id="partResult" class="tool-note">支持 yyyyMMdd / yyyy-MM-dd / 时间戳</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 编码 / 哈希 ============ -->
+    <section class="tool-view" id="tool-encode">
+      <div class="tool-head"><h2>编码 / 哈希</h2><span class="desc">Base64 · URL · HTML · MD5 / SHA-1 / SHA-256 · UUID</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>输入 <div class="spacer"></div><button class="mini" id="encClear">清空</button></div>
+          <div class="card-body"><textarea id="encInput" spellcheck="false" placeholder="输入要处理的内容…"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex:1">操作<select id="encMode">
+              <option value="b64enc">Base64 编码</option>
+              <option value="b64dec">Base64 解码</option>
+              <option value="urlenc">URL 编码（encodeURIComponent）</option>
+              <option value="urldec">URL 解码</option>
+              <option value="uricomponent">URL 编码（encodeURI）</option>
+              <option value="htmlenc">HTML 转义</option>
+              <option value="htmldec">HTML 反转义</option>
+              <option value="md5">MD5 哈希</option>
+              <option value="sha1">SHA-1 哈希</option>
+              <option value="sha256">SHA-256 哈希</option>
+              <option value="uuid">生成 UUID v4（忽略输入）</option>
+            </select></label>
+            <button class="mini primary" id="encRun">执行</button>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>输出 <div class="spacer"></div><button class="mini" id="encCopy">复制</button><button class="mini" id="encSwap">输出到输入</button></div>
+          <div class="card-body"><textarea id="encOutput" readonly spellcheck="false" placeholder="结果将显示在这里…"></textarea></div>
+          <div class="stat-line" id="encStat">哈希均为小写十六进制，可直接用于校验</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CSV / TSV ============ -->
+    <section class="tool-view" id="tool-csv">
+      <div class="tool-head"><h2>CSV / TSV 转 SQL</h2><span class="desc">带引号字段解析 · 自动识别数字 · 分批 INSERT</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>表格数据 <div class="spacer"></div><button class="mini" id="csvSample">示例</button><button class="mini" id="csvClear">清空</button></div>
+          <div class="card-body"><textarea id="csvInput" spellcheck="false" placeholder="粘贴 CSV / TSV 内容…"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">分隔<select id="csvDelim"><option value=",">逗号 CSV</option><option value="\t">制表符 TSV</option><option value=";">分号</option></select></label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px"><input type="checkbox" id="csvHeader" checked> 首行为表头</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">引号<select id="csvQuote"><option value="auto">智能</option><option value="single">单引号</option><option value="double">双引号</option><option value="none">不加</option></select></label>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>生成结果 <div class="spacer"></div><button class="mini" id="csvCopy">复制</button><button class="mini" id="csvDownload">下载</button></div>
+          <div class="card-body"><textarea id="csvOutput" readonly spellcheck="false" placeholder="结果将显示在这里…"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">表名<input type="text" id="csvTable" value="dwd.my_table" style="width:130px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">每批<input type="number" id="csvBatch" value="0" min="0" style="width:60px" title="0 表示不分批"></label>
+            <button class="mini primary" id="csvToSqlBtn">转 SQL</button>
+            <button class="mini" id="csvToJsonBtn">转 JSON</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 模型文档 ============ -->
+    <section class="tool-view" id="tool-model">
+      <div class="tool-head"><h2>模型文档生成</h2><span class="desc">建表语句一键转模型设计 Excel · 自动识别公共层 / 应用层</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>建表语句 <div class="spacer"></div><button class="mini" id="mdSample">示例</button><button class="mini" id="mdClear">清空</button><button class="mini primary" id="mdGen">生成 Excel</button></div>
+          <div class="card-body"><textarea id="mdInput" spellcheck="false" placeholder="粘贴 CREATE TABLE 语句，多张表用 ; 分隔…"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">文档标题<input type="text" id="mdTitle" value="模型设计：" style="width:110px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">应用层前缀<input type="text" id="mdPrefix" value="ads_,app_,rpt_" style="width:130px"></label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:11.5px"><input type="checkbox" id="mdCatalog" checked> 目录页</label>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>识别结果 <div class="spacer"></div><button class="mini" id="mdCopyList">复制清单</button></div>
+          <div class="card-body"><textarea id="mdOutput" readonly spellcheck="false" placeholder="识别到的表会显示在这里…"></textarea></div>
+          <div class="stat-line" id="mdStat">支持 Hive / Spark / MySQL 风格建表语句</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INSERT 造数 ============ -->
+    <section class="tool-view" id="tool-ins">
+      <div class="tool-head"><h2>INSERT 测试数据</h2><span class="desc">依据建表语句生成可直接执行的 INSERT 测试数据 · 按字段名与注释智能取值</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>建表语句 <div class="spacer"></div><button class="mini" id="insSample">示例</button><button class="mini" id="insClear">清空</button><button class="mini primary" id="insGen">生成 INSERT</button></div>
+          <div class="card-body"><textarea id="insInput" spellcheck="false" placeholder="粘贴 CREATE TABLE 语句，多张表用 ; 分隔…"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">行数<input type="number" id="insRows" value="10" min="1" max="1000" style="width:66px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">方言<select id="insDialect" style="width:150px"><option value="hive">Hive / Spark</option><option value="mysql">MySQL / Doris</option><option value="plain">仅 VALUES</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">分区值<input type="text" id="insPart" value="20240101" style="width:98px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">目标表<select id="insTable" style="width:230px"><option value="">全部表</option></select></label>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>INSERT 语句 <div class="spacer"></div><button class="mini" id="insCopy">复制</button></div>
+          <div class="card-body"><textarea id="insOutput" readonly spellcheck="false" placeholder="生成结果会显示在这里…"></textarea></div>
+          <div class="stat-line" id="insStat">支持 Hive / Spark / MySQL 风格建表语句</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 同步 SQL ============ -->
+    <section class="tool-view" id="tool-sync">
+      <div class="tool-head"><h2>同步 SQL 生成</h2><span class="desc">建表语句一键生成：建表 DDL · 全量同步 · 增量同步 · 拉链表 SQL</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>源表 + 目标表建表语句 <div class="spacer"></div><button class="mini" id="syncSample">示例</button><button class="mini" id="syncClear">清空</button><button class="mini primary" id="syncGen">生成 SQL</button></div>
+          <div class="card-body"><textarea id="syncInput" spellcheck="false" placeholder="粘贴两张表的 CREATE TABLE，用 ; 分隔：第一张 = 源表，第二张 = 目标表&#10;（若只贴一张，请在“目标表”里填目标表名）"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">方言<select id="syncDialect" style="width:132px"><option value="hive">Hive</option><option value="spark">Spark / 湖仓</option><option value="mysql">MySQL / Doris</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">主键<select id="syncPk" style="width:150px"><option value="">自动识别</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">增量字段<select id="syncIncr" style="width:150px"><option value="">无</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">目标表<input type="text" id="syncTarget" placeholder="留空 = 第二张表" style="width:186px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">对比字段<input type="text" id="syncCmp" placeholder="留空 = 主键外全部" style="width:180px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">日期变量<input type="text" id="syncVar" value="${bizdate}" style="width:112px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">存储<select id="syncFormat" style="width:104px"><option>ORC</option><option>PARQUET</option><option>TEXTFILE</option></select></label>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>生成结果 <div class="spacer"></div><button class="mini" id="syncCopy">复制当前</button><button class="mini" id="syncCopyAll">复制全部</button></div>
+          <div class="tabs" id="syncTabs" style="padding:0 12px;background:transparent;border-bottom:1px solid var(--border-soft)">
+            <div class="tab active" data-sync="ddl"><span class="tab-dot"></span>建表 DDL</div>
+            <div class="tab" data-sync="full"><span class="tab-dot"></span>全量同步</div>
+            <div class="tab" data-sync="incr"><span class="tab-dot"></span>增量同步</div>
+            <div class="tab" data-sync="zip"><span class="tab-dot"></span>拉链表</div>
+          </div>
+          <div class="card-body"><textarea id="syncOutput" readonly spellcheck="false" placeholder="贴入建表语句后点「生成 SQL」…"></textarea></div>
+          <div class="stat-line" id="syncStat">第一张表 = 源表，第二张表 = 目标表；主键与增量字段自动识别</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 表结构变更 ============ -->
+    <section class="tool-view" id="tool-chg">
+      <div class="tool-head"><h2>表结构变更</h2><span class="desc">对比新旧建表语句，直接生成 ALTER 脚本 · 新增/删除/改类型/改注释/重命名字段</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>新旧建表语句 <div class="spacer"></div><button class="mini" id="chgSample">示例</button><button class="mini" id="chgClear">清空</button><button class="mini primary" id="chgGen">生成变更</button></div>
+          <div class="card-body" style="flex-direction:column;padding:10px;gap:9px">
+            <div style="display:flex;flex-direction:column;flex:1;min-height:86px">
+              <div class="sub-label">旧版 DDL（线上）</div>
+              <textarea id="chgOld" spellcheck="false" style="border:1px solid var(--border-soft);border-radius:8px;background:var(--soft);padding:8px 10px" placeholder="粘贴当前线上的建表语句…"></textarea>
+            </div>
+            <div style="display:flex;flex-direction:column;flex:1;min-height:86px">
+              <div class="sub-label">新版 DDL（待发布）</div>
+              <textarea id="chgNew" spellcheck="false" style="border:1px solid var(--border-soft);border-radius:8px;background:var(--soft);padding:8px 10px" placeholder="粘贴变更后的建表语句…"></textarea>
+            </div>
+          </div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">方言<select id="chgDialect" style="width:132px"><option value="hive">Hive / Spark</option><option value="mysql">MySQL / Doris</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="chgDropCol" checked>删除字段</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="chgRename" checked>识别重命名</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="chgCascade" checked>级联 CASCADE</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="chgDropTable">生成删表</label>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head">变更脚本 <div class="spacer"></div><button class="mini" id="chgCopy">复制</button></div>
+          <div class="card-body"><textarea id="chgOut" readonly spellcheck="false" placeholder="生成结果会显示在这里…"></textarea></div>
+          <div class="stat-line" id="chgStat">按表全名匹配；新增表回填原 CREATE 语句，删表 / 删字段默认注释掉</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 建模规范体检 ============ -->
+    <section class="tool-view" id="tool-lint">
+      <div class="tool-head"><h2>建模规范体检</h2><span class="desc">按数仓建表规范逐项打分：命名 / 分层前缀 / 注释 / 类型 / 分区 / 审计字段</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>建表语句 <div class="spacer"></div><button class="mini" id="lintSample">示例</button><button class="mini" id="lintClear">清空</button><button class="mini primary" id="lintRun">开始体检</button></div>
+          <div class="card-body"><textarea id="lintInput" spellcheck="false" placeholder="粘贴 CREATE TABLE 语句，多张表用 ; 分隔…"></textarea></div>
+          <div class="stat-line" id="lintInputStat">规则内置：表名 / 字段名、分层前缀、注释、类型、分区、审计字段等 20+ 项</div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head">体检报告 <div class="spacer"></div><button class="mini" id="lintCopy">复制 Markdown</button></div>
+          <div class="card-body" id="lintResult" style="display:block;overflow:auto;padding:11px"><div class="empty">粘贴建表语句后点「开始体检」</div></div>
+          <div class="stat-line" id="lintStat">A ≥ 90 · B ≥ 75 · C ≥ 60（error 扣 10 / warn 扣 4 / info 扣 1）</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 数据探查 ============ -->
+    <section class="tool-view" id="tool-prof">
+      <div class="tool-head"><h2>数据探查</h2><span class="desc">建表语句 / 表名 → 一整套验数 SQL：行数 · 空值率 · 数值分布 · 枚举 · 主键重复 · 抽样</span></div>
+      <div class="tool-body grid">
+        <div class="card io-pane">
+          <div class="card-head"><span class="ch-icon"></span>表结构 / 表名 <div class="spacer"></div><button class="mini" id="profSample">示例</button><button class="mini" id="profClear">清空</button><button class="mini primary" id="profGen">生成探查 SQL</button></div>
+          <div class="card-body"><textarea id="profInput" spellcheck="false" placeholder="粘贴 CREATE TABLE 语句，或直接输入表名（每行一个 / 逗号分隔）&#10;例：dwd.dwd_mbr_member_df, dws.dws_sale_day"></textarea></div>
+          <div class="io-tools">
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">方言<select id="profDialect" style="width:132px"><option value="hive">Hive / Spark</option><option value="mysql">MySQL / Doris</option></select></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">分区变量<input type="text" id="profPart" value="${bizdate}" style="width:112px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">抽样<input type="number" id="profLimit" value="20" min="1" max="1000" style="width:66px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px">TopN<input type="number" id="profTopN" value="20" min="1" max="200" style="width:66px"></label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="profNulls" checked>空值</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="profNums" checked>数值</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="profEnum" checked>枚举</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="profDup" checked>重复</label>
+            <label class="field" style="flex-direction:row;align-items:center;gap:5px"><input type="checkbox" id="profSampleOn" checked>抽样</label>
+          </div>
+        </div>
+        <div class="card io-pane">
+          <div class="card-head">探查 SQL <div class="spacer"></div><button class="mini" id="profCopy">复制</button></div>
+          <div class="card-body"><textarea id="profOut" readonly spellcheck="false" placeholder="生成结果会显示在这里…"></textarea></div>
+          <div class="stat-line" id="profStat">自动识别金额 / 枚举 / 主键 / 时间字段，生成对应核对段落</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span style="display:flex;align-items:center;gap:5px"><span class="status-dot"></span><span id="stat">就绪</span></span>
+      <span class="spacer"></span>
+      <span>全部工具本地运行 · Ctrl+Enter 格式化 SQL · Ctrl+S 保存结果</span>
+    </footer>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fileInput" accept=".sql,.txt" style="display:none">
+<input type="file" id="cfgInput" accept=".json" style="display:none">
+
+<script src="md5.min.js"></script>
+<script src="sha1.min.js"></script>
+<script src="sha256.min.js"></script>
+<script src="formatter.js"></script>
+<script src="analyzer.js"></script>
+<script src="toolkit.js"></script>
+<script src="modeldoc.js"></script>
+<script src="testdata.js"></script>
+<script src="syncsql.js"></script>
+<script src="ddlchange.js"></script>
+<script src="ddllint.js"></script>
+<script src="profiler.js"></script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var A = window.SQLAnalysis, F = window.SQLFmt, TK = window.Toolkit;
+  var input=$('input'), output=$('output'), stat=$('stat'), toast=$('toast');
+  var timer=null, htmlLines=[], cteMap=[], outText='';
+
+  function opts(){
+    return { upper:$('optUpper').checked, clauseLines:$('optClause').checked, wrapLogic:$('optLogic').checked,
+      fieldPerLine:$('optFieldLine').checked, casePerLine:$('optCaseLine').checked,
+      indentSize:parseInt($('optIndent').value,10)||0, maxWidth:parseInt($('optWidth').value,10)||100000,
+      dialect:$('dialect').value };
+  }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function showToast(m){ toast.textContent=m; toast.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(function(){toast.classList.remove('show');},1600); }
+  function setStat(m){ stat.textContent=m; }
+
+  /* ---------- navigation ---------- */
+  var TOOL_NAMES={sql:'SQL 工作台',json:'JSON 工具',text:'文本批处理',regex:'正则测试',time:'时间 / 分区',encode:'编码 / 哈希',csv:'CSV / TSV 转 SQL',model:'模型文档',ins:'INSERT 造数',sync:'同步 SQL 生成',chg:'表结构变更',lint:'建模规范体检',prof:'数据探查'};
+  var TOOL_DESC={sql:'格式化 · 分析 · 对比 · 工具',json:'格式化 · 校验 · 转 INSERT',text:'清洗 · 去重 · 排序 · 加引号',regex:'匹配 · 分组 · 替换',time:'时间戳 · 日期计算 · 分区格式',encode:'Base64 · URL · 哈希 · UUID',csv:'表格数据一键生成 SQL',model:'建表语句一键转模型设计文档',ins:'依据表结构生成 INSERT 测试数据',sync:'DDL · 全量 · 增量 · 拉链表',chg:'新旧 DDL 对比一键生成 ALTER',lint:'建表规范逐项打分与整改建议',prof:'生成验数 SQL · 空值 / 分布 / 枚举 / 重复'};
+  Array.prototype.forEach.call(document.querySelectorAll('.nav-item'),function(n){
+    n.onclick=function(){
+      Array.prototype.forEach.call(document.querySelectorAll('.nav-item'),function(x){x.classList.remove('active');});
+      Array.prototype.forEach.call(document.querySelectorAll('.tool-view'),function(x){x.classList.remove('active');});
+      n.classList.add('active');
+      var t=n.getAttribute('data-tool');
+      $('tool-'+t).classList.add('active');
+      $('headTitle').textContent=TOOL_NAMES[t];
+      $('headDesc').textContent=TOOL_DESC[t];
+      document.title=TOOL_NAMES[t]+' · 数据开发工具包'+(document.documentElement.getAttribute('data-theme')==='dark'?'\u200B':'');
+      setStat(TOOL_NAMES[t]+' 就绪');
+    };
+  });
+
+  /* ---------- formatting & rendering ---------- */
+  function renderLines(result, sql){
+    var html = F.toHtml(result).split('\n');
+    var lines = result.text.split('\n');
+    htmlLines = html;
+    outText = result.text;
+    var ctes = A.cteLines(result.text);
+    cteMap = ctes;
+    var cteByLine = {};
+    ctes.forEach(function(c){ cteByLine[c.start]=c; });
+    output.innerHTML = lines.map(function(_,i){
+      var cls = 'cl' + (cteByLine[i+1] ? ' cte-head' : '');
+      var data = cteByLine[i+1] ? ' data-cte="'+esc(cteByLine[i+1].name)+'"' : '';
+      return '<div class="'+cls+'" data-line="'+(i+1)+'"'+data+'><span class="ln">'+(i+1)+'</span><span class="code">'+(html[i]||'')+'</span></div>';
+    }).join('');
+    var ol = $('outline');
+    ol.innerHTML = '<div class="outline-title">CTE 大纲</div>';
+    $('cteCount').textContent = ctes.length ? (ctes.length+' 个 CTE') : '';
+    if(!ctes.length){ ol.innerHTML += '<div class="outline-empty">未检测到 WITH ... AS 结构</div>'; }
+    ctes.forEach(function(c){
+      var item=document.createElement('div'); item.className='outline-item';
+      item.innerHTML='<span class="dot"></span><span>'+esc(c.name)+'</span>';
+      item.onclick=function(){ toggleCte(c.name, c.start, c.end); };
+      ol.appendChild(item);
+    });
+    var maxLen = Math.max.apply(null, lines.map(function(l){return l.length;}).concat([1]));
+    $('minimap').innerHTML = lines.map(function(l,i){
+      var w = Math.max(8, Math.round(l.length/maxLen*42));
+      var color = /^\s*(SELECT|FROM|WHERE|JOIN|WITH|INSERT|GROUP|ORDER|AND|OR)/i.test(l.trim()) ? 'var(--accent)' : 'var(--ln)';
+      return '<div class="mini-row" data-mini="'+(i+1)+'" style="width:'+w+'px;background:'+color+'"></div>';
+    }).join('');
+    Array.prototype.forEach.call($('minimap').querySelectorAll('.mini-row'), function(r){
+      r.onclick=function(){ var el=output.querySelector('[data-line="'+r.getAttribute('data-mini')+'"]'); if(el) el.scrollIntoView({block:'center'}); };
+    });
+    updateAnalysis(sql, lines);
+  }
+  function toggleCte(name, startLine, endLine){
+    var collapsed=false;
+    for(var i=startLine+1;i<=endLine;i++){
+      var el=output.querySelector('[data-line="'+i+'"]');
+      if(el){ if(el.classList.contains('collapsed')) collapsed=true; }
+    }
+    if(collapsed){ for(var j=startLine+1;j<=endLine;j++){ var e=output.querySelector('[data-line="'+j+'"]'); if(e)e.classList.remove('collapsed'); } }
+    else { for(var k=startLine+1;k<=endLine;k++){ var x=output.querySelector('[data-line="'+k+'"]'); if(x)x.classList.add('collapsed'); } }
+  }
+  function doFormat(){
+    var sql=input.value;
+    if(!sql.trim()){ output.innerHTML=''; outText=''; setStat('就绪'); return; }
+    try{
+      var r=F.format(sql, opts());
+      renderLines(r, sql);
+      setStat('已格式化 · '+r.text.split('\n').length+' 行 · '+sql.length+' 字符');
+    }catch(e){ setStat('格式化出错：'+e.message); }
+  }
+  function schedule(){ clearTimeout(timer); timer=setTimeout(doFormat,120); }
+
+  /* ---------- analysis ---------- */
+  function updateAnalysis(sql, formattedLines){
+    var vars=A.scanVariables(sql);
+    var vp=$('varPanel');
+    if(!vars.length){ vp.innerHTML='<div class="empty">未检测到调度变量</div>'; }
+    else{
+      vp.innerHTML=vars.map(function(v){
+        return '<div class="var-row"><span class="vn">'+esc(v.raw)+'</span><input data-var="'+esc(v.name)+'" placeholder="填入值，如 2024-01-01"><span class="hint">×'+v.count+'</span></div>';
+      }).join('');
+    }
+    var refs=A.extractRefs(sql);
+    $('tableCount').textContent=refs.tables.length+' 个对象'+(refs.hasStar?' · 含 SELECT *':'');
+    $('tableList').innerHTML=refs.tables.length?refs.tables.map(function(t){
+      return '<div class="list-item"><span class="tag '+t.kind+'">'+({target:'写入',from:'读取',join:'关联'})[t.kind]+'</span><span>'+esc(t.name)+'</span></div>';
+    }).join(''):'<div class="empty">未识别到表对象</div>';
+    $('colCount').textContent=refs.columns.length+' 个字段';
+    $('colList').innerHTML=refs.columns.length?'<div class="row" style="gap:6px">'+refs.columns.map(function(c){return '<span class="tag">'+esc(c.name)+'</span>';}).join('')+'</div>':'<div class="empty">未识别到输出字段</div>';
+    var risks=A.scanRisks(sql);
+    $('riskCount').textContent=risks.length?risks.length+' 项':'通过';
+    var lvName={danger:'高危',warn:'注意',info:'建议'};
+    $('riskList').innerHTML=risks.length?risks.map(function(r){
+      return '<div class="risk '+r.level+'"><div class="rt"><span class="lv '+r.level+'">'+lvName[r.level]+'</span>'+esc(r.title)+'</div><div class="rd">'+esc(r.detail)+'</div></div>';
+    }).join(''):'<div class="empty" style="color:var(--ok)">✓ 未发现明显风险</div>';
+  }
+
+  /* ---------- copy / tabs ---------- */
+  function copyText(text, okMsg){
+    if(!text){ showToast('没有可复制的内容'); return; }
+    if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(text).then(function(){showToast(okMsg||'已复制 ✓');},fallback); }
+    else fallback();
+    function fallback(){ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');showToast(okMsg||'已复制 ✓');}catch(e){showToast('复制失败');} document.body.removeChild(ta); }
+  }
+  function formattedText(){ return outText; }
+  Array.prototype.forEach.call(document.querySelectorAll('#wbTabs .tab'),function(tab){
+    tab.onclick=function(){
+      Array.prototype.forEach.call(document.querySelectorAll('#wbTabs .tab'),function(t){t.classList.remove('active');});
+      Array.prototype.forEach.call(document.querySelectorAll('#sqlMain .view'),function(v){v.classList.remove('active');});
+      tab.classList.add('active');
+      $('view-'+tab.getAttribute('data-view')).classList.add('active');
+      if(tab.getAttribute('data-view')==='diff' && !$('diffA').value) $('diffA').value=input.value;
+    };
+  });
+
+  /* ---------- SQL buttons ---------- */
+  $('btnFormat').onclick=doFormat;
+  $('btnCopy').onclick=function(){copyText(formattedText());};
+  $('btnCopy2').onclick=function(){copyText(formattedText());};
+  $('btnClear').onclick=function(){ input.value=''; output.innerHTML=''; outText=''; setStat('就绪'); input.focus(); };
+  $('btnSample').onclick=function(){
+    input.value="with recent as (select u.id,u.name,count(o.id) as orders,sum(o.amount) as total from ods.users u left join ods.orders o on u.id=o.user_id where u.dt='${bizdate}' and u.status=1 group by u.id,u.name having count(o.id)>2) select * from recent where total>100 order by total desc limit 20";
+    doFormat();
+  };
+  $('btnPaste').onclick=function(){ if(navigator.clipboard&&navigator.clipboard.readText){navigator.clipboard.readText().then(function(t){input.value=t;doFormat();}).catch(function(){showToast('请直接 Ctrl+V 粘贴');});}else showToast('请直接 Ctrl+V 粘贴'); };
+  $('btnApplyVars').onclick=function(){
+    var vals={}; Array.prototype.forEach.call($('varPanel').querySelectorAll('input[data-var]'),function(el){ if(el.value) vals[el.getAttribute('data-var')]=el.value; });
+    var sql=A.replaceVariables(input.value, vals);
+    var w=prompt('替换结果：\n\n（点确定将替换输入框内容）', sql);
+    if(w!==null){ input.value=w; doFormat(); }
+  };
+  ['optUpper','optClause','optLogic','optFieldLine','optCaseLine','optIndent','optWidth','dialect'].forEach(function(id){ $(id).addEventListener('change',doFormat); });
+  input.addEventListener('input',schedule);
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Tab'){e.preventDefault();var s=this.selectionStart,en=this.selectionEnd;this.value=this.value.slice(0,s)+'  '+this.value.slice(en);this.selectionStart=this.selectionEnd=s+2;schedule();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doFormat();}
+  });
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){
+      e.preventDefault();
+      var active=document.querySelector('.nav-item.active').getAttribute('data-tool');
+      var map={sql:function(){saveFile(formattedText(),'formatted.sql');},json:function(){saveFile($('jsonOutput').value,'result.json','application/json');},text:function(){saveFile($('textOutput').value,'result.txt');},regex:function(){saveFile($('rxOut').value,'replace-result.txt');},csv:function(){saveFile($('csvOutput').value,'result.sql');},ins:function(){saveFile($('insOutput').value,'insert-data.sql');},sync:function(){saveFile($('syncOutput').value,'sync.sql');},chg:function(){saveFile($('chgOut').value,'ddl-change.sql');},lint:function(){saveFile(lintMd,'ddl-lint.md');},prof:function(){saveFile($('profOut').value,'profile.sql');}};
+      (map[active]||map.sql)();
+    }
+  });
+
+  /* ---------- theme / config ---------- */
+  function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); $('btnTheme').textContent=t==='dark'?'浅色':'深色'; localStorage.setItem('sqlwb-theme',t);
+    var base=(document.title||'数据开发工具包').replace(/\u200B/g,''); document.title = base + (t==='dark' ? '\u200B' : ''); }
+  $('btnTheme').onclick=function(){ applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); };
+  function collectCfg(){ return {upper:$('optUpper').checked,clause:$('optClause').checked,logic:$('optLogic').checked,field:$('optFieldLine').checked,caseLine:$('optCaseLine').checked,indent:$('optIndent').value,width:$('optWidth').value,dialect:$('dialect').value,theme:document.documentElement.getAttribute('data-theme')||'light'}; }
+  function loadCfg(c){
+    if(!c)return;
+    if(c.upper!==undefined)$('optUpper').checked=c.upper;
+    if(c.clause!==undefined)$('optClause').checked=c.clause;
+    if(c.logic!==undefined)$('optLogic').checked=c.logic;
+    if(c.field!==undefined)$('optFieldLine').checked=c.field;
+    if(c.caseLine!==undefined)$('optCaseLine').checked=c.caseLine;
+    if(c.indent!==undefined)$('optIndent').value=c.indent;
+    if(c.width!==undefined)$('optWidth').value=c.width;
+    if(c.dialect!==undefined)$('dialect').value=c.dialect;
+    if(c.theme)applyTheme(c.theme);
+    doFormat();
+  }
+  $('btnExport').onclick=function(){ saveFile(JSON.stringify(collectCfg(),null,2),'data-dev-kit-config.json','application/json'); };
+  $('btnImport').onclick=function(){ $('cfgInput').click(); };
+  $('cfgInput').onchange=function(){ var f=this.files[0]; if(!f)return; var r=new FileReader(); r.onload=function(){ try{loadCfg(JSON.parse(r.result));showToast('配置已导入');}catch(e){showToast('配置文件无效');} }; r.readAsText(f); this.value=''; };
+  function saveFile(text,name,type){
+    var blob=new Blob([text],{type:type||'text/plain;charset=utf-8'});
+    var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showToast('已保存 '+name);
+  }
+
+  /* ---------- file open / drop ---------- */
+  function openSqlFile(f){ if(!f)return; var r=new FileReader(); r.onload=function(){ input.value=r.result; doFormat(); showToast('已打开 '+f.name); }; r.readAsText(f); }
+  $('btnOpen').onclick=function(){ $('fileInput').click(); };
+  $('fileInput').onchange=function(){ openSqlFile(this.files[0]); this.value=''; };
+  var dz=document.createElement('div'); dz.className='drop-hint'; dz.textContent='松开以打开 SQL 文件'; $('view-fmt').appendChild(dz);
+  $('view-fmt').addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('show');});
+  $('view-fmt').addEventListener('dragleave',function(e){ if(e.target===$('view-fmt')||!this.contains(e.relatedTarget)) dz.classList.remove('show'); });
+  $('view-fmt').addEventListener('drop',function(e){ e.preventDefault(); dz.classList.remove('show'); if(e.dataTransfer.files[0]) openSqlFile(e.dataTransfer.files[0]); });
+
+  /* ---------- diff ---------- */
+  $('btnDiff').onclick=function(){
+    var r=A.diff($('diffA').value,$('diffB').value,{ignoreCase:$('diffIgnoreCase').checked,ignoreSpace:$('diffIgnoreSpace').checked});
+    $('diffStat').textContent='+'+r.stats.add+'  −'+r.stats.del+'  ='+r.stats.same;
+    $('diffResult').innerHTML=r.rows.map(function(row){
+      if(row.type==='same') return '<div class="diff-row same"><span class="dn">'+(row.aNum||'')+'</span><span class="sign"></span>'+esc(row.a)+'</div>';
+      if(row.type==='add') return '<div class="diff-row add"><span class="dn">'+(row.bNum||'')+'</span><span class="sign">+</span>'+esc(row.b)+'</div>';
+      return '<div class="diff-row del"><span class="dn">'+(row.aNum||'')+'</span><span class="sign">−</span>'+esc(row.a)+'</div>';
+    }).join('');
+  };
+  $('btnDiffSwap').onclick=function(){ var t=$('diffA').value; $('diffA').value=$('diffB').value; $('diffB').value=t; };
+
+  /* ---------- SQL tools ---------- */
+  $('btnIds').onclick=function(){
+    var r=A.idsToIn($('idInput').value,{quote:$('idQuote').value,distinct:$('idDistinct').checked});
+    $('idOut').textContent=r.text+'\n（'+r.count+' 项'+(r.quoted?'，带引号':'')+'）';
+    $('idOut')._val=r.text;
+  };
+  $('btnIdsCopy').onclick=function(){ copyText($('idOut')._val||''); };
+  $('btnDdl').onclick=function(){ $('ddlOut').textContent=A.toDDL(input.value,$('ddlName').value||'new_table'); $('ddlOut')._val=$('ddlOut').textContent; };
+  $('btnDdlCopy').onclick=function(){ copyText($('ddlOut')._val||''); };
+
+  var BUILTIN_SNIPS=[
+    {t:'维表关联（Hive 动态分区）',d:'INSERT OVERWRITE TABLE ... PARTITION (dt) SELECT ... LEFT JOIN dim ...',s:"INSERT OVERWRITE TABLE dwd.target PARTITION (dt='${bizdate}')\nSELECT a.id, a.name, b.dim_name\nFROM ods.fact a\nLEFT JOIN dim.dim_table b ON a.dim_id = b.id\nWHERE a.dt = '${bizdate}';"},
+    {t:'ROW_NUMBER 去重取最新',d:'按主键分组按时间倒序取第一条',s:"SELECT * FROM (\n  SELECT t.*, ROW_NUMBER() OVER (PARTITION BY id ORDER BY update_time DESC) AS rn\n  FROM ods.source t\n  WHERE dt = '${bizdate}'\n) x WHERE rn = 1;"},
+    {t:'日期分区常用写法',d:'取近 N 天数据',s:"SELECT *\nFROM db.table\nWHERE dt BETWEEN DATE_SUB('${bizdate}', 7) AND '${bizdate}';"},
+    {t:'口径核对：COUNT 与 SUM',d:'对比两天数据量与金额波动',s:"SELECT dt, COUNT(1) AS cnt, SUM(amount) AS total\nFROM db.table\nWHERE dt IN ('${bizdate}', DATE_SUB('${bizdate}', 1))\nGROUP BY dt;"}
+  ];
+  function userSnips(){ try{return JSON.parse(localStorage.getItem('sqlwb-snips')||'[]');}catch(e){return [];} }
+  function renderSnips(){
+    var all=BUILTIN_SNIPS.concat(userSnips());
+    $('snipList').innerHTML=all.map(function(s,i){
+      return '<div class="snip" data-i="'+i+'"><span class="sn-ico">▸</span><div class="sn-t">'+esc(s.t)+'</div><div class="sn-d">'+esc(s.d)+'</div></div>';
+    }).join('')||'<div class="empty">暂无片段</div>';
+    Array.prototype.forEach.call($('snipList').querySelectorAll('.snip'),function(el){
+      el.onclick=function(){ var s=all[parseInt(el.getAttribute('data-i'),10)]; input.value=s.s; doFormat(); showToast('已插入片段'); document.querySelector('#wbTabs .tab[data-view="fmt"]').click(); document.querySelector('.nav-item[data-tool="sql"]').click(); };
+    });
+  }
+  $('btnAddSnip').onclick=function(){
+    if(!input.value.trim()){showToast('输入框为空');return;}
+    var t=prompt('片段名称：'); if(!t)return;
+    var d=prompt('简短说明：','')||'';
+    var arr=userSnips(); arr.push({t:t,d:d,s:input.value}); localStorage.setItem('sqlwb-snips',JSON.stringify(arr)); renderSnips(); showToast('已收藏');
+  };
+
+  /* ---------- JSON tool ---------- */
+  function jsonTry(fn){
+    try{ var r=fn(); if(r!==undefined) $('jsonOutput').value=r; setStat('JSON 工具已处理'); return true; }
+    catch(e){ setStat('JSON 错误：'+e.message); showToast('JSON 错误：'+e.message); return false; }
+  }
+  $('jsonFmt').onclick=function(){ jsonTry(function(){ var v=TK.jsonValidate($('jsonInput').value); if(!v.ok) throw new Error(v.message); $('jsonStat').textContent=v.message; return TK.jsonFormat($('jsonInput').value,parseInt($('jsonIndent').value,10)); }); };
+  $('jsonMin').onclick=function(){ jsonTry(function(){ return TK.jsonMinify($('jsonInput').value); }); };
+  $('jsonCheck').onclick=function(){ var v=TK.jsonValidate($('jsonInput').value); $('jsonStat').textContent=v.message; setStat(v.message); showToast(v.message); };
+  $('jsonInsert').onclick=function(){ jsonTry(function(){ return TK.jsonToInsert($('jsonInput').value,$('jsonTable').value||'my_table'); }); };
+  $('jsonCopy').onclick=function(){ copyText($('jsonOutput').value); };
+  $('jsonDownload').onclick=function(){ saveFile($('jsonOutput').value,'result.json','application/json'); };
+  $('jsonSample').onclick=function(){ $('jsonInput').value='[\n  {"id": 1, "name": "Alice", "amount": 12.5, "dt": "20240102"},\n  {"id": 2, "name": "Bob", "amount": 30, "dt": "20240103"}\n]'; $('jsonFmt').click(); };
+  $('jsonClear').onclick=function(){ $('jsonInput').value=''; $('jsonOutput').value=''; $('jsonStat').textContent=''; };
+
+  /* ---------- text tool ---------- */
+  $('textRun').onclick=function(){
+    var r=TK.textProcess($('textInput').value,{
+      dedup:$('textDedup').checked, ignoreCaseDedup:$('textIgnoreCase').checked, dropEmpty:$('textDropEmpty').checked,
+      trim:$('textTrim').checked, reverse:$('textReverse').checked, sort:$('textSort').value,
+      caseMode:$('textCase').value, prefix:$('textPrefix').value, suffix:$('textSuffix').value
+    });
+    $('textOutput').value=r.text;
+    $('textStat').textContent='原始 '+r.stats.lines+' 行 · 结果 '+r.stats.result+' 行 · 唯一 '+r.stats.unique+' 项 · '+r.stats.chars+' 字符';
+    setStat('文本处理完成');
+  };
+  $('textCopy').onclick=function(){ copyText($('textOutput').value); };
+  $('textToInput').onclick=function(){ if(!$('textOutput').value){showToast('暂无结果');return;} input.value=$('textOutput').value; doFormat(); document.querySelector('.nav-item[data-tool="sql"]').click(); showToast('已作为 SQL 输入'); };
+  $('textClear').onclick=function(){ $('textInput').value=''; $('textOutput').value=''; $('textStat').textContent='等待处理'; };
+
+  /* ---------- regex tool ---------- */
+  $('rxRun').onclick=function(){
+    var r=TK.regexTest($('rxPattern').value,$('rxFlags').value,$('rxText').value);
+    if(!r.ok){ $('rxStat').textContent=r.error; $('rxMatches').innerHTML='<div class="empty">'+esc(r.error)+'</div>'; setStat(r.error); return; }
+    $('rxCount').textContent=r.count+' 处匹配';
+    $('rxStat').textContent='共 '+r.count+' 处匹配';
+    $('rxMatches').innerHTML=r.count?r.matches.map(function(m,i){
+      return '<div class="rx-match"><div class="m-line">#'+(i+1)+' · 位置 '+m.index+' · 第 '+m.line+' 行</div><div class="m-val">'+esc(m.value)+'</div>'+(m.groups.length?'<div class="m-grp">分组：'+m.groups.map(function(g,j){return '$'+(j+1)+'='+esc(g==null?'':g);}).join('  ')+'</div>':'')+'</div>';
+    }).join(''):'<div class="empty">没有匹配项</div>';
+    setStat('正则匹配 '+r.count+' 处');
+  };
+  $('rxReplaceBtn').onclick=function(){
+    var r=TK.regexReplace($('rxPattern').value,$('rxFlags').value,$('rxText').value,$('rxReplace').value);
+    if(!r.ok){ showToast(r.error); return; }
+    $('rxOut').value=r.text; setStat('替换完成'); showToast('替换完成 ✓');
+  };
+  $('rxCopy').onclick=function(){ copyText($('rxOut').value); };
+  $('rxClear').onclick=function(){ $('rxPattern').value=''; $('rxText').value=''; $('rxOut').value=''; $('rxMatches').innerHTML='<div class="empty">匹配结果将显示在这里</div>'; $('rxCount').textContent=''; $('rxStat').textContent='输入正则后点击测试'; };
+
+  /* ---------- time tool ---------- */
+  function kv(rows){ return rows.map(function(r){ return '<div class="kv"><span class="k">'+esc(r[0])+'</span><span class="v">'+esc(r[1])+'</span></div>'; }).join(''); }
+  function refreshNow(){
+    var n=TK.timeNow();
+    $('timeBig').textContent=n.dash;
+    $('timeNowKv').innerHTML=kv([['本地时间',n.local],['ISO 8601',n.iso],['Unix 秒',n.unixSec],['Unix 毫秒',n.unixMs],['紧凑日期',n.ymd]]);
+  }
+  $('timeRefresh').onclick=refreshNow;
+  $('tsRun').onclick=function(){
+    try{ var r=TK.tsToDate($('tsValue').value,$('tsUnit').value);
+      $('tsResult').innerHTML=kv([['本地时间',r.local],['ISO 8601',r.iso],['日期',r.dash],['紧凑分区',r.ymd]]);
+      $('partDate').value=r.ymd; setStat('时间戳已转换');
+    }catch(e){ $('tsResult').innerHTML='<span style="color:var(--danger)">'+esc(e.message)+'</span>'; setStat(e.message); }
+  };
+  $('dateToTsBtn').onclick=function(){
+    var r=TK.dateToTs($('dateValue').value);
+    $('dateResult').innerHTML=kv([['Unix 秒',r.sec],['Unix 毫秒',r.ms],['日期',$('dateValue').value]]);
+    setStat('日期已转时间戳');
+  };
+  $('dateCalcBtn').onclick=function(){
+    var d=TK.dateShift($('dateValue').value,$('dateDelta').value,$('dateUnit').value);
+    var f=TK.dateFormats(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+    $('dateResult').innerHTML=kv([['计算结果',f[1].value],['紧凑分区',f[0].value],['年月',f[2].value],['星期',f[7].value]]);
+    $('partDate').value=f[0].value; setStat('日期计算完成');
+  };
+  $('partRun').onclick=function(){
+    try{
+      var v=$('partDate').value.trim();
+      if(/^\d{10,13}$/.test(v)) v=TK.tsToDate(v,v.length===10?'s':'ms').ymd;
+      var rows=TK.dateFormats(v);
+      $('partResult').innerHTML=rows.map(function(r){ return '<div class="fmt-row"><span class="l">'+esc(r.label)+'</span><span class="v">'+esc(r.value)+'</span></div>'; }).join('');
+      setStat('分区格式已生成');
+    }catch(e){ $('partResult').innerHTML='<span style="color:var(--danger)">'+esc(e.message)+'</span>'; setStat(e.message); }
+  };
+
+  /* ---------- encode tool ---------- */
+  $('encRun').onclick=function(){
+    try{
+      var mode=$('encMode').value;
+      var text=mode==='uuid'?'':$('encInput').value;
+      var out=TK.encode(mode,text);
+      $('encOutput').value=out;
+      $('encStat').textContent='已执行：'+($('encMode').selectedOptions[0].textContent)+' · '+out.length+' 字符';
+      setStat('编码工具已处理');
+    }catch(e){ $('encStat').textContent='错误：'+e.message; showToast(e.message); setStat(e.message); }
+  };
+  $('encCopy').onclick=function(){ copyText($('encOutput').value); };
+  $('encSwap').onclick=function(){ if(!$('encOutput').value){showToast('暂无结果');return;} $('encInput').value=$('encOutput').value; showToast('已填回输入'); };
+  $('encClear').onclick=function(){ $('encInput').value=''; $('encOutput').value=''; $('encStat').textContent='哈希均为小写十六进制，可直接用于校验'; };
+
+  /* ---------- csv tool ---------- */
+  function csvOpts(){ return { delimiter:$('csvDelim').value==='\\t'?'\t':$('csvDelim').value, hasHeader:$('csvHeader').checked, quote:$('csvQuote').value, table:$('csvTable').value||'my_table', batch:$('csvBatch').value }; }
+  $('csvToSqlBtn').onclick=function(){
+    try{ var out=TK.csvToSql($('csvInput').value,csvOpts()); $('csvOutput').value=out; setStat('CSV 已转为 SQL · '+out.split('\n').length+' 行'); }
+    catch(e){ showToast(e.message); setStat(e.message); }
+  };
+  $('csvToJsonBtn').onclick=function(){
+    try{ var out=TK.csvToJson($('csvInput').value,csvOpts()); $('csvOutput').value=out; setStat('CSV 已转为 JSON'); }
+    catch(e){ showToast(e.message); setStat(e.message); }
+  };
+  $('csvCopy').onclick=function(){ copyText($('csvOutput').value); };
+  $('csvDownload').onclick=function(){ saveFile($('csvOutput').value,$('csvOutput').value.trim().charAt(0)==='['?'result.json':'result.sql'); };
+  $('csvSample').onclick=function(){ $('csvInput').value='id,name,amount,dt\n1,Tom,12.5,20240102\n2,Jerry,20,20240102\n3,"Alice, A",8.8,20240103'; $('csvToSqlBtn').click(); };
+  $('csvClear').onclick=function(){ $('csvInput').value=''; $('csvOutput').value=''; };
+
+  /* ---------- model doc ---------- */
+  var MD = window.ModelDoc;
+  var MD_SAMPLE = [
+    "CREATE TABLE fct_yy_mbr_service_touch_df (",
+    "  touch_id string COMMENT '触达唯一ID',",
+    "  member_id string COMMENT '会员ID',",
+    "  touch_channel string COMMENT '触达渠道: phone/wechat/sms',",
+    "  execute_time string COMMENT '执行时间',",
+    "  expose_cnt bigint COMMENT '曝光次数',",
+    "  convert_amt decimal(18,2) COMMENT '转化金额'",
+    ") COMMENT '会员服务全触达明细事实表'",
+    "PARTITIONED BY (ds string COMMENT '数据日期 yyyy-mm-dd');",
+    "",
+    "CREATE TABLE ads_yy_mbr_service_summary_df (",
+    "  region_lvl1_name string COMMENT '大区',",
+    "  member_type string COMMENT '会员类型',",
+    "  member_cnt_1d bigint COMMENT '当日会员数',",
+    "  svc_convert_amt_mtd decimal(18,2) COMMENT '月累计服务转化金额'",
+    ") COMMENT '会员服务分析总览'",
+    "PARTITIONED BY (ds string COMMENT '业务日期 yyyymmdd');"
+  ].join('\n');
+
+  function mdOpts(){
+    return { title:$('mdTitle').value||'模型设计：', appPrefixes:$('mdPrefix').value, catalog:$('mdCatalog').checked };
+  }
+  function mdRefresh(){
+    var st;
+    try{ st = MD.parse($('mdInput').value, mdOpts()); }
+    catch(e){ st = { tables:[], errors:[{message:e.message}] }; }
+    var pub = st.tables.filter(function(t){ return t.layer==='公共层'; });
+    var app = st.tables.filter(function(t){ return t.layer==='应用层'; });
+    var lines = [];
+    function fmt(t){ return '  '+t.name+'   '+(t.cn||'')+'   ('+(t.cols.length+t.partitions.length)+' 字段)'; }
+    if(pub.length){ lines.push('公共层 · '+pub.length+' 张'); pub.forEach(function(t){ lines.push(fmt(t)); }); }
+    if(app.length){ lines.push((pub.length?'\n':'')+'应用层 · '+app.length+' 张'); app.forEach(function(t){ lines.push(fmt(t)); }); }
+    if(!st.tables.length) lines.push('（还需粘贴 CREATE TABLE 语句）');
+    if(st.errors.length) lines.push('\n⚠ ' + st.errors.map(function(e){return e.message;}).join('\n⚠ '));
+    $('mdOutput').value = lines.join('\n');
+    $('mdStat').textContent = st.tables.length
+      ? '已识别 '+st.tables.length+' 张表 · 公共层 '+pub.length+' · 应用层 '+app.length
+      : '未识别到建表语句';
+    return st;
+  }
+  var mdTimer = null;
+  $('mdInput').addEventListener('input', function(){ clearTimeout(mdTimer); mdTimer = setTimeout(mdRefresh, 250); });
+  ['mdTitle','mdPrefix','mdCatalog'].forEach(function(id){ $(id).addEventListener('change', mdRefresh); });
+  $('mdSample').onclick = function(){ $('mdInput').value = MD_SAMPLE; mdRefresh(); showToast('已填入示例建表语句'); };
+  $('mdClear').onclick = function(){ $('mdInput').value=''; $('mdOutput').value=''; $('mdStat').textContent='支持 Hive / Spark / MySQL 风格建表语句'; };
+  $('mdCopyList').onclick = function(){ copyText($('mdOutput').value); };
+  $('mdGen').onclick = function(){
+    var st, bytes;
+    try{ st = MD.parse($('mdInput').value, mdOpts()); }
+    catch(e){ showToast(e.message); return; }
+    if(!st.tables.length){ showToast(st.errors.length ? st.errors[0].message : '没有识别到建表语句'); return; }
+    try{ bytes = MD.bytesFromTables(st.tables, mdOpts()); }
+    catch(e){ showToast('生成失败：'+e.message); setStat('生成失败：'+e.message); return; }
+    var d = new Date();
+    var stamp = d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+    saveFile(bytes, '模型设计文档_'+stamp+'.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    setStat('已生成模型文档 · '+st.tables.length+' 张表');
+    showToast('已生成 '+st.tables.length+' 张表的模型文档');
+  };
+
+  /* ---------- INSERT 造数 ---------- */
+  var TD = window.TestData;
+  function insOpts(){
+    return {
+      rows: parseInt($('insRows').value, 10) || 10,
+      dialect: $('insDialect').value,
+      partition: $('insPart').value.trim(),
+      table: $('insTable').value
+    };
+  }
+  function insRefresh(){
+    var st;
+    try{ st = MD.parse($('insInput').value, {}); }
+    catch(e){ st = { tables:[], errors:[{message:e.message}] }; }
+    var sel = $('insTable'), keep = sel.value;
+    sel.innerHTML = '<option value="">全部表（'+st.tables.length+' 张）</option>';
+    st.tables.forEach(function(t){
+      var o = document.createElement('option');
+      o.value = t.full;
+      o.textContent = t.full + '  ' + (t.cn || '');
+      sel.appendChild(o);
+    });
+    sel.value = st.tables.some(function(t){ return t.full === keep; }) ? keep : '';
+    $('insStat').textContent = st.tables.length
+      ? '已识别 '+st.tables.length+' 张表 · '+st.tables.reduce(function(a,t){ return a+t.cols.length+t.partitions.length; },0)+' 个字段'
+      : '（还需粘贴 CREATE TABLE 语句）';
+    return st;
+  }
+  var insTimer = null;
+  $('insInput').addEventListener('input', function(){ clearTimeout(insTimer); insTimer = setTimeout(insRefresh, 250); });
+  ['insDialect','insPart','insTable'].forEach(function(id){ $(id).addEventListener('change', insRefresh); });
+  $('insSample').onclick = function(){ $('insInput').value = MD_SAMPLE; insRefresh(); showToast('已填入示例建表语句'); };
+  $('insClear').onclick = function(){ $('insInput').value=''; $('insOutput').value=''; insRefresh(); };
+  $('insCopy').onclick = function(){ if(!$('insOutput').value){ showToast('暂无结果'); return; } copyText($('insOutput').value); };
+  $('insGen').onclick = function(){
+    var r;
+    try{ r = TD.generate($('insInput').value, insOpts()); }
+    catch(e){ showToast(e.message); setStat('生成失败：'+e.message); return; }
+    if(!r.tables.length){ showToast(r.errors.length ? r.errors[0].message : '没有识别到建表语句'); return; }
+    $('insOutput').value = r.sql;
+    $('insStat').textContent = '已生成 '+r.tables.length+' 张表 × '+r.rows+' 行 · '+r.sql.length+' 字符';
+    setStat('已生成 INSERT 测试数据 · '+r.tables.length+' 张表');
+    showToast('已生成 '+r.tables.length+' 张表的 INSERT 数据');
+  };
+
+  /* ---------- 同步 SQL ---------- */
+  var SY = window.SyncSQL;
+  var syncTab = 'ddl', syncLast = null;
+  var SYNC_SAMPLE = [
+    "CREATE TABLE IF NOT EXISTS ods.ods_yy_mbr_member (",
+    "  member_id   string COMMENT '会员ID',",
+    "  member_name string COMMENT '会员姓名',",
+    "  mobile      string COMMENT '手机号',",
+    "  member_type string COMMENT '会员类型: 0潜客 1准客 2生效中',",
+    "  open_time   string COMMENT '开通时间',",
+    "  update_time string COMMENT '更新时间'",
+    ") COMMENT '会员原始表'",
+    "PARTITIONED BY (ds string COMMENT '数据日期 yyyymmdd');",
+    "",
+    "CREATE TABLE IF NOT EXISTS dwd.dwd_yy_mbr_member_df (",
+    "  member_id   string COMMENT '会员ID',",
+    "  member_name string COMMENT '会员姓名',",
+    "  mobile      string COMMENT '手机号',",
+    "  member_type string COMMENT '会员类型',",
+    "  open_time   string COMMENT '开通时间',",
+    "  update_time string COMMENT '更新时间'",
+    ") COMMENT '会员明细表'",
+    "PARTITIONED BY (ds string COMMENT '数据日期 yyyymmdd');"
+  ].join("\n");
+  function syncOpts(){
+    return {
+      dialect: $('syncDialect').value,
+      var: $('syncVar').value.trim() || '${bizdate}',
+      format: $('syncFormat').value,
+      pk: $('syncPk').value,
+      incrField: $('syncIncr').value,
+      compare: $('syncCmp').value.trim(),
+      target: $('syncTarget').value.trim()
+    };
+  }
+  function syncTables(){
+    var st;
+    try{ st = MD.parse($('syncInput').value, {}); }
+    catch(e){ st = { tables: [] }; }
+    return st.tables || [];
+  }
+  function syncFill(sel, emptyLabel, names, keep, guess){
+    var old = keep || sel.value;
+    sel.innerHTML = '';
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = emptyLabel; sel.appendChild(o0);
+    names.forEach(function(n){ var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+    if(old && names.indexOf(old) >= 0) sel.value = old;
+    else if(guess && names.indexOf(guess) >= 0) sel.value = guess;
+    else sel.value = '';
+  }
+  function syncRefresh(){
+    var tables = syncTables();
+    var tgt = tables[1] || tables[0];
+    var names = tgt ? tgt.cols.map(function(c){ return c.name; }) : [];
+    syncFill($('syncPk'), '自动识别', names, null, tgt ? SY._guessPk(tgt) : '');
+    syncFill($('syncIncr'), '无', names, null, tgt ? SY._guessIncr(tgt) : '');
+    $('syncStat').textContent = tables.length >= 2
+      ? '已识别 ' + tables.length + ' 张表：' + tables[0].name + ' → ' + tables[1].name
+      : (tables.length === 1
+          ? '只识别到 1 张表（' + tables[0].name + '），请再贴目标表或在「目标表」填表名'
+          : '第一张表 = 源表，第二张表 = 目标表；主键与增量字段自动识别');
+  }
+  function syncShow(){
+    $('syncOutput').value = syncLast ? (syncLast[syncTab] || '') : '';
+    Array.prototype.forEach.call(document.querySelectorAll('#syncTabs .tab'), function(el){
+      el.classList.toggle('active', el.getAttribute('data-sync') === syncTab);
+    });
+  }
+  var syncTimer = null;
+  $('syncInput').addEventListener('input', function(){ clearTimeout(syncTimer); syncTimer = setTimeout(syncRefresh, 250); });
+  ['syncDialect','syncVar','syncFormat','syncPk','syncIncr','syncCmp','syncTarget'].forEach(function(id){
+    $(id).addEventListener('change', function(){ if(syncLast) syncGenRun(); });
+  });
+  $('syncSample').onclick = function(){ $('syncInput').value = SYNC_SAMPLE; syncRefresh(); showToast('已填入源表 + 目标表示例'); };
+  $('syncClear').onclick = function(){ $('syncInput').value = ''; $('syncOutput').value = ''; syncLast = null; syncRefresh(); };
+  $('syncCopy').onclick = function(){ var v = $('syncOutput').value; if(!v){ showToast('暂无结果'); return; } copyText(v); };
+  $('syncCopyAll').onclick = function(){
+    if(!syncLast){ showToast('请先点「生成 SQL」'); return; }
+    var parts = [['建表 DDL','ddl'],['全量同步','full'],['增量同步','incr'],['拉链表','zip']].map(function(p){
+      return '-- ----- ' + p[0] + ' -----\n' + (syncLast[p[1]] || '');
+    });
+    copyText(parts.join('\n\n'));
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('#syncTabs .tab'), function(el){
+    el.addEventListener('click', function(){ syncTab = el.getAttribute('data-sync'); syncShow(); });
+  });
+  function syncGenRun(){
+    try{ syncLast = SY.build($('syncInput').value, syncOpts()); }
+    catch(e){ syncLast = null; showToast(e.message); setStat('生成失败：' + e.message); return; }
+    syncShow();
+    var st = syncLast.stats || {};
+    $('syncStat').textContent = '源表 ' + st.src + ' → 目标表 ' + st.dst + ' · ' + (st.cols || 0) + ' 字段 · 主键 ' + (st.pk || '无');
+    setStat('已生成同步 SQL · 建表 / 全量 / 增量 / 拉链表');
+  }
+  $('syncGen').onclick = function(){
+    syncGenRun();
+    if(!syncLast) return;
+    showToast('已生成 建表 DDL / 全量 / 增量 / 拉链表');
+  };
+  syncRefresh();
+
+  /* ---------- 表结构变更 ---------- */
+  var DC = window.DDLChange, DL = window.DDLLint, PF = window.Profiler;
+  var CHG_OLD = [
+    "CREATE TABLE IF NOT EXISTS dwd.dwd_mbr_member_df (",
+    "  member_id   string COMMENT '会员ID',",
+    "  mbr_name    string COMMENT '会员姓名',",
+    "  mobile      string COMMENT '手机号',",
+    "  member_type string COMMENT '会员类型: 0潜客 1准客 2生效中',",
+    "  amount      double COMMENT '累计金额',",
+    "  update_time string COMMENT '更新时间'",
+    ") COMMENT '会员明细表'",
+    "PARTITIONED BY (dt string COMMENT '数据日期 yyyymmdd');"
+  ].join('\n');
+  var CHG_NEW = [
+    "CREATE TABLE IF NOT EXISTS dwd.dwd_mbr_member_df (",
+    "  member_id   bigint COMMENT '会员ID',",
+    "  member_name string COMMENT '会员姓名',",
+    "  open_time   string COMMENT '开通时间',",
+    "  member_type string COMMENT '会员类型: 0潜客 1准客 2生效中',",
+    "  amount      decimal(18,2) COMMENT '累计金额（元）',",
+    "  update_time string COMMENT '更新时间'",
+    ") COMMENT '会员明细表（V2）'",
+    "PARTITIONED BY (dt string COMMENT '数据日期 yyyymmdd');",
+    "",
+    "CREATE TABLE IF NOT EXISTS dwd.dwd_mbr_label_di (",
+    "  member_id bigint COMMENT '会员ID',",
+    "  label_id  string COMMENT '标签ID',",
+    "  label_val string COMMENT '标签值'",
+    ") COMMENT '会员标签日表'",
+    "PARTITIONED BY (dt string COMMENT '数据日期 yyyymmdd');"
+  ].join('\n');
+
+  function chgOpts(){
+    return { dialect: $('chgDialect').value, dropColumn: $('chgDropCol').checked,
+      rename: $('chgRename').checked, cascade: $('chgCascade').checked, dropTable: $('chgDropTable').checked };
+  }
+  function chgRun(){
+    var oldDdl = $('chgOld').value.trim(), newDdl = $('chgNew').value.trim();
+    if(!oldDdl && !newDdl){ showToast('请先粘贴新旧建表语句'); return; }
+    var r;
+    try{ r = DC.build(oldDdl, newDdl, chgOpts()); }
+    catch(e){ showToast(e.message); setStat('生成失败：' + e.message); return; }
+    if(!r.tables.length){
+      $('chgOut').value = '';
+      $('chgStat').textContent = r.warnings.length ? r.warnings.join('；') : '没有识别到建表语句';
+      return;
+    }
+    $('chgOut').value = r.sql;
+    var s = r.summary;
+    $('chgStat').textContent = '新增表 ' + s.added + ' · 删除表 ' + s.removed + ' · 变更表 ' + s.changed
+      + ' ｜ 新增字段 ' + s.addCols + ' · 删除字段 ' + s.dropCols + ' · 修改字段 ' + s.modCols + ' · 重命名 ' + s.renames
+      + (r.warnings.length ? ' ｜ ' + r.warnings.join('；') : '');
+    setStat('已生成变更脚本 · ' + (s.added + s.removed + s.changed) + ' 张表涉及变更');
+    if(!s.added && !s.removed && !s.changed){ showToast('两张表结构一致，无需变更'); setStat('结构一致，无需变更'); }
+  }
+  $('chgGen').onclick = function(){ chgRun(); if($('chgOut').value) showToast('已生成变更脚本'); };
+  $('chgSample').onclick = function(){ $('chgOld').value = CHG_OLD; $('chgNew').value = CHG_NEW; chgRun(); showToast('已填入新旧 DDL 示例'); };
+  $('chgClear').onclick = function(){ $('chgOld').value = ''; $('chgNew').value = ''; $('chgOut').value = ''; $('chgStat').textContent = '按表全名匹配；新增表回填原 CREATE 语句，删表 / 删字段默认注释掉'; };
+  $('chgCopy').onclick = function(){ var v = $('chgOut').value; if(!v){ showToast('暂无结果'); return; } copyText(v); };
+  $('chgDialect').onchange = function(){ if($('chgOut').value) chgRun(); };
+
+  /* ---------- 建模规范体检 ---------- */
+  var LINT_SAMPLE = [
+    "CREATE TABLE dwd_sale_detail (",
+    "  id int COMMENT 'ID',",
+    "  memberId varchar COMMENT '会员id',",
+    "  amt float COMMENT '金额',",
+    "  create_time string,",
+    "  memo string",
+    ") COMMENT '销售明细';"
+  ].join('\n');
+  var lintMd = '';
+  function lintChip(n, label, cls){
+    return '<div class="lint-chip"><div class="n ' + (cls || '') + '">' + esc(String(n)) + '</div><div class="l">' + esc(label) + '</div></div>';
+  }
+  function lintRun(){
+    var r;
+    try{ r = DL.check($('lintInput').value, {}); }
+    catch(e){ showToast(e.message); setStat('体检失败：' + e.message); return; }
+    if(!r.tables.length){
+      $('lintResult').innerHTML = '<div class="empty">没有识别到建表语句</div>';
+      $('lintStat').textContent = r.errors.length ? r.errors[0].message : '没有识别到 CREATE TABLE';
+      return;
+    }
+    lintMd = r.markdown;
+    var s = r.summary;
+    var cls = s.grade === 'A' ? 'score-a' : (s.grade === 'B' ? 'score-b' : 'score-c');
+    var html = '<div class="lint-summary">'
+      + lintChip(s.tables, '张表')
+      + lintChip(s.avgScore + ' ' + s.grade, '平均分', cls)
+      + lintChip(s.errors, '错误')
+      + lintChip(s.warns, '警告')
+      + lintChip(s.infos, '提示') + '</div>';
+    r.tables.forEach(function(t){
+      var tc = t.grade === 'A' ? 'score-a' : (t.grade === 'B' ? 'score-b' : 'score-c');
+      html += '<div class="lint-tbl"><div class="lint-hd">' + esc(t.full)
+        + '<span class="tag">' + esc(t.layer) + '</span><span class="lint-score ' + tc + '">' + t.score + ' 分 · ' + t.grade + '</span></div><div class="lint-bd">';
+      if(!t.issues.length){ html += '<div class="tool-note">未发现问题，规范通过 ✓</div>'; }
+      var order = { error: 0, warn: 1, info: 2 };
+      t.issues.slice().sort(function(a, b){ return order[a.level] - order[b.level]; }).forEach(function(i){
+        var lv = i.level === 'error' ? 'danger' : i.level;
+        var lvName = i.level === 'error' ? '错误' : (i.level === 'warn' ? '警告' : '提示');
+        html += '<div class="risk ' + lv + '"><div class="rt"><span class="lv ' + lv + '">' + lvName + '</span>' + esc(i.rule) + '</div>'
+          + '<div class="rd">' + esc(i.message) + (i.hint ? '<br>→ ' + esc(i.hint) : '') + '</div></div>';
+      });
+      html += '</div></div>';
+    });
+    $('lintResult').innerHTML = html;
+    $('lintStat').textContent = '共 ' + s.tables + ' 张表 · 平均 ' + s.avgScore + ' 分（' + s.grade + '）· 错误 ' + s.errors + ' / 警告 ' + s.warns + ' / 提示 ' + s.infos;
+    setStat('体检完成 · 平均 ' + s.avgScore + ' 分（' + s.grade + '）');
+  }
+  $('lintRun').onclick = function(){ lintRun(); showToast('体检完成'); };
+  $('lintSample').onclick = function(){ $('lintInput').value = LINT_SAMPLE; lintRun(); showToast('已填入待整改的建表示例'); };
+  $('lintClear').onclick = function(){ $('lintInput').value = ''; lintMd = ''; $('lintResult').innerHTML = '<div class="empty">粘贴建表语句后点「开始体检」</div>'; $('lintStat').textContent = 'A ≥ 90 · B ≥ 75 · C ≥ 60（error 扣 10 / warn 扣 4 / info 扣 1）'; };
+  $('lintCopy').onclick = function(){ if(!lintMd){ showToast('请先体检'); return; } copyText(lintMd); };
+
+  /* ---------- 数据探查 ---------- */
+  var PROF_SAMPLE = [
+    "CREATE TABLE IF NOT EXISTS dwd.dwd_mbr_member_df (",
+    "  member_id   bigint COMMENT '会员ID',",
+    "  member_name string COMMENT '会员姓名',",
+    "  member_type string COMMENT '会员类型: 0潜客 1准客 2生效中',",
+    "  amount      decimal(18,2) COMMENT '累计金额',",
+    "  open_time   string COMMENT '开通时间',",
+    "  update_time string COMMENT '更新时间'",
+    ") COMMENT '会员明细表'",
+    "PARTITIONED BY (dt string COMMENT '数据日期 yyyymmdd');"
+  ].join('\n');
+  function profOpts(){
+    return {
+      dialect: $('profDialect').value,
+      partVar: $('profPart').value.trim() || '${bizdate}',
+      limit: parseInt($('profLimit').value, 10) || 20,
+      topN: parseInt($('profTopN').value, 10) || 20,
+      checks: { count: true, nulls: $('profNulls').checked, numeric: $('profNums').checked,
+        enum: $('profEnum').checked, dup: $('profDup').checked, sample: $('profSampleOn').checked }
+    };
+  }
+  function profRun(){
+    var r;
+    try{ r = PF.build($('profInput').value, profOpts()); }
+    catch(e){ showToast(e.message); setStat('生成失败：' + e.message); return; }
+    if(!r.tables.length){
+      $('profOut').value = '';
+      $('profStat').textContent = r.errors.length ? r.errors[0].message : '没有识别到表结构或表名';
+      return;
+    }
+    $('profOut').value = r.sql;
+    $('profStat').textContent = '共 ' + r.stats.tables + ' 张表 · ' + r.stats.cols + ' 个字段 · ' + r.stats.lines + ' 行 SQL'
+      + (r.errors.length ? ' ｜ ' + r.errors[0].message : '');
+    setStat('已生成数据探查 SQL · ' + r.stats.tables + ' 张表');
+  }
+  $('profGen').onclick = function(){ profRun(); if($('profOut').value) showToast('已生成探查 SQL'); };
+  $('profSample').onclick = function(){ $('profInput').value = PROF_SAMPLE; profRun(); showToast('已填入会员表示例'); };
+  $('profClear').onclick = function(){ $('profInput').value = ''; $('profOut').value = ''; $('profStat').textContent = '自动识别金额 / 枚举 / 主键 / 时间字段，生成对应核对段落'; };
+  $('profCopy').onclick = function(){ var v = $('profOut').value; if(!v){ showToast('暂无结果'); return; } copyText(v); };
+  ['profDialect','profNulls','profNums','profEnum','profDup','profSampleOn'].forEach(function(id){
+    $(id).addEventListener('change', function(){ if($('profOut').value) profRun(); });
+  });
+
+  /* ---------- init ---------- */
+  F.getDialects().forEach(function(d){ var o=document.createElement('option'); o.value=d.id; o.textContent=d.label; $('dialect').appendChild(o); });
+  var saved=localStorage.getItem('sqlwb-theme'); if(saved) applyTheme(saved); else applyTheme('light');
+  $('dateValue').value=new Date().toISOString().slice(0,10);
+  $('partDate').value=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  refreshNow();
+  renderSnips();
+  doFormat();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# local launcher artifacts
+*.lnk
+desktop.ini
+Thumbs.db
+
+# scratch / probe files
+_preview*.*
+_probe*.*
+_test*.js
+*.tmp
+*.log
+
+# OS noise
+.DS_Store
