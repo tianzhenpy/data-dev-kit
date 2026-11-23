@@ -274,6 +274,7 @@
         <label><input type="checkbox" id="optFieldLine" checked> 字段一行</label>
         <label><input type="checkbox" id="optCaseLine" checked> CASE 分行</label>
         <div class="sep"></div>
+        <label class="opt-group">逗号 <select id="optComma"><option value="leading">行首</option><option value="trailing">行尾</option></select></label>
         <label class="opt-group">缩进 <select id="optIndent"><option value="2">2</option><option value="4">4</option><option value="0">0</option></select></label>
         <label class="opt-group">折行 <select id="optWidth"><option value="80">80</option><option value="100" selected>100</option><option value="120">120</option><option value="0">不限</option></select></label>
         <div class="spacer"></div>
@@ -748,6 +749,7 @@
   function opts(){
     return { upper:$('optUpper').checked, clauseLines:$('optClause').checked, wrapLogic:$('optLogic').checked,
       fieldPerLine:$('optFieldLine').checked, casePerLine:$('optCaseLine').checked,
+      commaStyle:$('optComma').value,
       indentSize:parseInt($('optIndent').value,10)||0, maxWidth:parseInt($('optWidth').value,10)||100000,
       dialect:$('dialect').value };
   }
@@ -887,7 +889,7 @@
     var w=prompt('替换结果：\n\n（点确定将替换输入框内容）', sql);
     if(w!==null){ input.value=w; doFormat(); }
   };
-  ['optUpper','optClause','optLogic','optFieldLine','optCaseLine','optIndent','optWidth','dialect'].forEach(function(id){ $(id).addEventListener('change',doFormat); });
+  ['optUpper','optClause','optLogic','optFieldLine','optCaseLine','optComma','optIndent','optWidth','dialect'].forEach(function(id){ $(id).addEventListener('change',doFormat); });
   input.addEventListener('input',schedule);
   input.addEventListener('keydown',function(e){
     if(e.key==='Tab'){e.preventDefault();var s=this.selectionStart,en=this.selectionEnd;this.value=this.value.slice(0,s)+'  '+this.value.slice(en);this.selectionStart=this.selectionEnd=s+2;schedule();}
@@ -906,7 +908,7 @@
   function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); $('btnTheme').textContent=t==='dark'?'浅色':'深色'; localStorage.setItem('sqlwb-theme',t);
     var base=(document.title||'数据开发工具包').replace(/\u200B/g,''); document.title = base + (t==='dark' ? '\u200B' : ''); }
   $('btnTheme').onclick=function(){ applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark'); };
-  function collectCfg(){ return {upper:$('optUpper').checked,clause:$('optClause').checked,logic:$('optLogic').checked,field:$('optFieldLine').checked,caseLine:$('optCaseLine').checked,indent:$('optIndent').value,width:$('optWidth').value,dialect:$('dialect').value,theme:document.documentElement.getAttribute('data-theme')||'light'}; }
+  function collectCfg(){ return {upper:$('optUpper').checked,clause:$('optClause').checked,logic:$('optLogic').checked,field:$('optFieldLine').checked,caseLine:$('optCaseLine').checked,comma:$('optComma').value,indent:$('optIndent').value,width:$('optWidth').value,dialect:$('dialect').value,theme:document.documentElement.getAttribute('data-theme')||'light'}; }
   function loadCfg(c){
     if(!c)return;
     if(c.upper!==undefined)$('optUpper').checked=c.upper;
@@ -914,6 +916,7 @@
     if(c.logic!==undefined)$('optLogic').checked=c.logic;
     if(c.field!==undefined)$('optFieldLine').checked=c.field;
     if(c.caseLine!==undefined)$('optCaseLine').checked=c.caseLine;
+    if(c.comma!==undefined)$('optComma').value=c.comma;
     if(c.indent!==undefined)$('optIndent').value=c.indent;
     if(c.width!==undefined)$('optWidth').value=c.width;
     if(c.dialect!==undefined)$('dialect').value=c.dialect;

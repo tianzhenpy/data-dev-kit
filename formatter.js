@@ -237,11 +237,11 @@
     var out = [];
     for (var li = 0; li < lines.length; li++) {
       var ln = lines[li];
-      var len = ln.indent * indentSize;
+      var len = (ln.pad != null) ? ln.pad : ln.indent * indentSize;
       for (var q = 0; q < ln.parts.length; q++) len += ln.parts[q].text.length;
       if (len <= maxWidth) { out.push(ln); continue; }
-      var cur = { indent: ln.indent, parts: [] };
-      var curLen = ln.indent * indentSize;
+      var cur = (ln.pad != null) ? { pad: ln.pad, parts: [] } : { indent: ln.indent, parts: [] };
+      var curLen = (ln.pad != null) ? ln.pad : ln.indent * indentSize;
       var depth = 0;
       for (var pi = 0; pi < ln.parts.length; pi++) {
         var p = ln.parts[pi];
@@ -252,8 +252,8 @@
         else if (v === ')') depth = Math.max(0, depth - 1);
         if (v === ',' && depth === 0 && curLen > maxWidth * 0.65) {
           out.push(cur);
-          cur = { indent: ln.indent + 1, parts: [] };
-          curLen = (ln.indent + 1) * indentSize;
+          cur = (ln.pad != null) ? { pad: ln.pad, parts: [] } : { indent: ln.indent + 1, parts: [] };
+          curLen = (ln.pad != null) ? ln.pad : (ln.indent + 1) * indentSize;
         }
       }
       if (cur.parts.length) out.push(cur);
@@ -270,6 +270,8 @@
     var maxWidth = options.maxWidth || 100;
     var fieldPerLine = options.fieldPerLine !== false;   // SELECT 列表一字段一行
     var casePerLine = options.casePerLine !== false;     // CASE 每个 WHEN 一行
+    // 逗号位置：'trailing' 行尾（默认），'leading' 行首且首字段跟在 SELECT 同一行
+    var commaStyle = options.commaStyle === 'leading' ? 'leading' : 'trailing';
     var ctx = makeContext(options.dialect || 'generic');
     var KW = ctx.kw, FN = ctx.fn, CLAUSES = ctx.clauses;
 
@@ -282,14 +284,28 @@
     var stmtLevel = 0, stmtIndent = 0, cteStack = [], afterCteClose = false;
     var caseStack = [];                       // CASE 起始行缩进
     var listDepth = -1, listIndent = 0;       // 正在拆行的字段列表（-1 表示无）
+    var leadCommaPad = -1;                    // 行首逗号风格的续行列宽（-1 表示不启用）
+    var noSpaceNext = false;                  // 行首逗号后紧跟字段，不要空格
 
     function newLine(level) {
       if (cur.parts.length) lines.push(cur);
       cur = { indent: level, parts: [] };
       prev = null;
     }
+    // 行首逗号风格：续行按绝对列宽对齐（pad），而不是按缩进层级
+    function newLinePad(col) {
+      if (cur.parts.length) lines.push(cur);
+      cur = { indent: 0, pad: col, parts: [] };
+      prev = null;
+    }
+    function curWidth() {
+      var total = (cur.pad != null) ? cur.pad : cur.indent * indentSize;
+      for (var q = 0; q < cur.parts.length; q++) total += cur.parts[q].text.length;
+      return total;
+    }
     function add(t, cls, forceSpace) {
       var space = forceSpace === undefined ? defaultSpace(t, prev, KW, FN) : forceSpace;
+      if (noSpaceNext) { space = false; noSpaceNext = false; }
       var text = (cur.parts.length && space ? ' ' : '') + t.value;
       cur.parts.push({ text: text, cls: cls });
       prev = t;
@@ -305,7 +321,7 @@
       if (clauseLines && parenDepth === stmtLevel && caseDepth === 0) {
         var plen = matchPhrase(tokens, i, CLAUSES);
         if (plen > 0) {
-          listDepth = -1;
+          listDepth = -1; leadCommaPad = -1;
           newLine(stmtIndent);
           for (var k = 0; k < plen; k++) {
             var pt = tokens[i + k];
@@ -321,8 +337,13 @@
             }
             if (countFields(tokens, i + 1, CLAUSES) > 1) {
               listDepth = parenDepth;
-              listIndent = stmtIndent + 1;
-              newLine(listIndent);
+              if (commaStyle === 'leading') {
+                // 首字段留在 SELECT 这一行，续行逗号对齐到首字段前一位
+                leadCommaPad = curWidth();
+              } else {
+                listIndent = stmtIndent + 1;
+                newLine(listIndent);
+              }
             }
           }
           continue;
@@ -339,9 +360,11 @@
 
       // CASE ... WHEN ... ELSE ... END：一个 WHEN 一行，ELSE 一行，END 与 CASE 对齐
       if (t.type === 'word' && up === 'CASE') {
+        // 行首逗号风格下续行用 pad 绝对列宽，换算成等效缩进层级给 WHEN/END 用
+        var caseLvl = (cur.pad != null) ? Math.floor(cur.pad / (indentSize || 2)) : cur.indent;
         add({ type: 'word', value: w(up) }, 'kw');
         caseDepth++;
-        caseStack.push(cur.indent);
+        caseStack.push(caseLvl);
         continue;
       }
       if (t.type === 'word' && up === 'WHEN' && caseDepth > 0) {
@@ -371,6 +394,13 @@
 
       // 字段列表：同层逗号后换行（配合 SELECT 一字段一行）
       if (listDepth >= 0 && t.value === ',' && parenDepth === listDepth) {
+        if (commaStyle === 'leading' && leadCommaPad >= 0) {
+          // 逗号挪到下一行行首，紧跟字段（逗号后不留空格）
+          newLinePad(leadCommaPad);
+          add(t, 'punc', false);
+          noSpaceNext = true;
+          continue;
+        }
         add(t, 'punc');
         newLine(listIndent);
         continue;
@@ -391,7 +421,7 @@
 
       // CTE body close: `)` gets its own line at the CTE header level
       if (t.value === ')' && cteStack.length && parenDepth === stmtLevel) {
-        listDepth = -1;
+        listDepth = -1; leadCommaPad = -1;
         newLine(stmtIndent - 1);
         parenDepth--;
         add(t, 'punc');
@@ -413,7 +443,7 @@
       if (t.value === '(') { add(t, 'punc'); parenDepth++; continue; }
       if (t.value === ')') {
         parenDepth = Math.max(0, parenDepth - 1);
-        if (listDepth >= 0 && parenDepth < listDepth) listDepth = -1;
+        if (listDepth >= 0 && parenDepth < listDepth) { listDepth = -1; leadCommaPad = -1; }
         add(t, 'punc');
         continue;
       }
@@ -445,14 +475,15 @@
       if (t.value === ';' && i + 1 < tokens.length) {
         newLine(0);
         stmtLevel = 0; stmtIndent = 0; cteStack = []; afterCteClose = false;
-        caseStack = []; caseDepth = 0; betweenPending = 0; listDepth = -1;
+        caseStack = []; caseDepth = 0; betweenPending = 0; listDepth = -1; leadCommaPad = -1;
       }
     }
     if (cur.parts.length) lines.push(cur);
 
     lines = wrapLongLines(lines, maxWidth, indentSize);
     var text = lines.map(function (ln) {
-      return ' '.repeat(ln.indent * indentSize) + ln.parts.map(function (p) { return p.text; }).join('');
+      var lead = (ln.pad != null) ? ' '.repeat(ln.pad) : ' '.repeat(ln.indent * indentSize);
+      return lead + ln.parts.map(function (p) { return p.text; }).join('');
     }).join('\n');
 
     return { text: text, lines: lines, indentSize: indentSize };
@@ -465,7 +496,7 @@
   function toHtml(result) {
     var ind = ' '.repeat(result.indentSize);
     return result.lines.map(function (ln) {
-      var lead = ind.repeat(ln.indent);
+      var lead = (ln.pad != null) ? ' '.repeat(ln.pad) : ind.repeat(ln.indent);
       var body = ln.parts.map(function (p) {
         return '<span class="t-' + (p.cls || 'plain') + '">' + escapeHtml(p.text) + '</span>';
       }).join('');
